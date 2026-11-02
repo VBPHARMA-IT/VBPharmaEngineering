@@ -3,98 +3,215 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QL Cơ điện - VB Pharma / VBTECH</title>
+  <title>Hệ Thống Quản Lý Cơ Điện &amp; Vật Tư - VB PHARMA / VBTECH</title>
+  <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script type="module" src="js/config.js"></script>
   <script type="module" src="js/app.js" defer></script>
 </head>
 <body>
   <div class="app" id="app">
+    
+    <!-- Top Navigation Bar -->
     <nav class="navbar" id="navbar" style="display:none;">
-      <div class="brand">⚙️ QL Cơ điện</div>
+      <div class="brand" onclick="app.show('dashboard')">
+        <img src="images/logo-dark.svg" alt="VB Pharma Logo" id="nav-logo">
+      </div>
+      
       <div class="nav-links">
-        <a href="#" onclick="app.show('dashboard')" data-nav="dashboard">Tổng quan</a>
-        <a href="#" onclick="app.show('maintenance')" data-nav="maintenance">Bảo trì / Bảo dưỡng</a>
-        <a href="#" onclick="app.show('inventory')" data-nav="inventory">Vật tư kho</a>
-        <a href="#" onclick="app.show('documents')" data-nav="documents">Hồ sơ / Giấy tờ</a>
-        <a href="#" onclick="app.logout()" style="margin-left:auto;">Đăng xuất</a>
+        <a href="#" onclick="app.show('dashboard')" data-nav="dashboard">
+          <span>📊</span> Tổng quan
+        </a>
+        <a href="#" onclick="app.show('maintenance')" data-nav="maintenance">
+          <span>🛠️</span> Bảo trì / Bảo dưỡng
+        </a>
+        <a href="#" onclick="app.show('inventory')" data-nav="inventory">
+          <span>📦</span> Vật tư kho
+        </a>
+        <a href="#" onclick="app.show('documents')" data-nav="documents">
+          <span>📂</span> Hồ sơ / Giấy tờ
+        </a>
+      </div>
+
+      <div class="nav-user">
+        <div class="user-badge">
+          <div class="user-avatar" id="nav-avatar">A</div>
+          <div>
+            <div style="font-weight:700; color:#fff;" id="nav-username">Admin</div>
+            <div style="font-size:0.75rem; color:#94a3b8;" id="nav-role">Quản trị viên</div>
+          </div>
+        </div>
+        <a href="#" class="btn btn-logout" onclick="app.logout()">
+          <span>🚪</span> Thoát
+        </a>
       </div>
     </nav>
+
+    <!-- Page: Login Screen -->
     <section id="page-login">
       <div class="login-wrap">
         <div class="login-card">
-          <h2>Đăng nhập</h2>
+          <div class="login-header">
+            <img src="images/logo.svg" alt="VB Pharma Engineering" class="login-logo">
+            <h2>Hệ Thống Cơ Điện</h2>
+            <p>Phần mềm quản lý phòng kỹ thuật &amp; vật tư kho</p>
+          </div>
+          
           <div id="login-alert" class="alert alert-danger" style="display:none;"></div>
-          <div class="form-group"><label>Tài khoản</label><input type="text" id="login-user" placeholder="admin"></div>
-          <div class="form-group"><label>Mật khẩu</label><input type="password" id="login-pass" placeholder="admin123"></div>
-          <button class="btn btn-primary" style="width:100%;" onclick="app.login()">Đăng nhập</button>
-          <p style="margin-top:16px; font-size:0.85rem; color:#6b7280; text-align:center;">Tài khoản mặc định: admin / admin123</p>
+          
+          <div class="form-group">
+            <label for="login-user">Tài khoản</label>
+            <input type="text" id="login-user" placeholder="Nhập tên đăng nhập (vd: admin)" autocomplete="username">
+          </div>
+          
+          <div class="form-group">
+            <label for="login-pass">Mật khẩu</label>
+            <input type="password" id="login-pass" placeholder="Nhập mật khẩu" autocomplete="current-password">
+          </div>
+          
+          <button class="btn btn-primary" style="width:100%; margin-top:10px; padding:12px;" onclick="app.login()">
+            <span>🔐</span> Đăng nhập hệ thống
+          </button>
+          
+          <div class="login-hint">
+            Tài khoản quản trị mặc định: <code>admin</code> | Mật khẩu: <code>admin123</code>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- Dashboard -->
+    <!-- Page: Dashboard -->
     <section id="page-dashboard" class="card" style="display:none;">
-      <h2>Tổng quan</h2>
-      <div class="grid-3" id="dashboard-stats"></div>
-      <div class="card" style="margin-top:20px;">
-        <h3>Cảnh báo bảo trì sắp tới</h3>
-        <div class="alert alert-info" style="text-align:center;">Đang tải dữ liệu...</div>
+      <div class="card-header-bar">
+        <h2><span>📊</span> Tổng quan hoạt động cơ điện</h2>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-outline btn-sm" onclick="app.loadDashboard()"><span>🔄</span> Làm mới</button>
+        </div>
+      </div>
+
+      <div class="grid-3" id="dashboard-stats">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div class="card" style="margin-top:28px; box-shadow:none; border:1px solid var(--slate-200); background:#ffffff;">
+        <div class="card-header-bar" style="margin-bottom:16px;">
+          <h3 style="font-size:1.15rem; font-weight:800; color:var(--slate-800); display:flex; align-items:center; gap:8px;">
+            <span>🔔</span> Kế hoạch bảo trì sắp tới (trong 30 ngày)
+          </h3>
+          <button class="btn btn-primary btn-sm" onclick="app.openModal('modal-maintenance')">
+            <span>+</span> Thêm lịch bảo trì
+          </button>
+        </div>
+        <div class="alert alert-info" style="margin-bottom:0;">Đang tải dữ liệu cảnh báo...</div>
       </div>
     </section>
 
-    <!-- Maintenance -->
+    <!-- Page: Maintenance -->
     <section id="page-maintenance" class="card" style="display:none;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
-        <h2>Lịch bảo trì / Bảo dưỡng</h2>
-        <button class="btn btn-primary" onclick="app.openModal('modal-maintenance')">+ Thêm mới</button>
+      <div class="card-header-bar">
+        <h2><span>🛠️</span> Nhật ký &amp; Lịch bảo trì bảo dưỡng</h2>
+        <button class="btn btn-primary" onclick="app.openModal('modal-maintenance')">
+          <span>+</span> Thêm bản ghi mới
+        </button>
       </div>
-      <div class="form-group" style="margin-bottom:16px;">
-        <label>Lọc theo phòng</label>
-        <select id="maint-room-filter" onchange="app.loadMaintenance()" style="width:100%; max-width:300px;">
-          <option value="">Tất cả phòng</option>
+
+      <div class="filter-bar">
+        <label style="font-weight:600; font-size:0.875rem; color:var(--slate-600);">Lọc phòng máy:</label>
+        <select id="maint-room-filter" onchange="app.loadMaintenance()">
+          <option value="">Tất cả phòng cơ điện</option>
         </select>
       </div>
+
       <div id="maint-alert" class="alert" style="display:none;"></div>
+
       <div class="table-wrap">
         <table id="maint-table">
-          <thead><tr><th>Mã phòng</th><th>Thiết bị</th><th>Loại BDT</th><th>Ngày thực hiện</th><th>Người thực hiện</th><th>Kết quả</th><th>Hành động</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Mã phòng</th>
+              <th>Thiết bị</th>
+              <th>Loại bảo trì</th>
+              <th>Ngày thực hiện</th>
+              <th>Người thực hiện</th>
+              <th>Kết quả</th>
+              <th style="text-align:right;">Thao tác</th>
+            </tr>
+          </thead>
           <tbody id="maint-tbody"></tbody>
         </table>
       </div>
     </section>
 
-    <!-- Inventory -->
+    <!-- Page: Inventory -->
     <section id="page-inventory" class="card" style="display:none;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
-        <h2>Quản lý vật tư kho</h2>
-        <button class="btn btn-primary" onclick="app.openModal('modal-inventory')">+ Thêm vật tư</button>
+      <div class="card-header-bar">
+        <h2><span>📦</span> Quản lý vật tư kho (VB Pharma &amp; VBTECH)</h2>
+        <button class="btn btn-primary" onclick="app.openModal('modal-inventory')">
+          <span>+</span> Thêm vật tư mới
+        </button>
       </div>
-      <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
-        <select id="inv-company-filter" onchange="app.loadInventory()" style="padding:8px 12px; border:1px solid #d1d5db; border-radius:6px;">
-          <option value="">Tất cả công ty</option><option value="VB Pharma">VB Pharma</option><option value="VBTECH">VBTECH</option>
+
+      <div class="filter-bar">
+        <label style="font-weight:600; font-size:0.875rem; color:var(--slate-600);">Bộ lọc:</label>
+        <select id="inv-company-filter" onchange="app.loadInventory()">
+          <option value="">🏢 Tất cả công ty</option>
+          <option value="VB Pharma">VB Pharma</option>
+          <option value="VBTECH">VBTECH</option>
         </select>
-        <select id="inv-kho-filter" onchange="app.loadInventory()" style="padding:8px 12px; border:1px solid #d1d5db; border-radius:6px;"><option value="">Tất cả kho</option></select>
+        <select id="inv-kho-filter" onchange="app.loadInventory()">
+          <option value="">🏪 Tất cả kho vật tư</option>
+        </select>
       </div>
+
       <div id="inv-alert" class="alert" style="display:none;"></div>
+
       <div class="table-wrap">
         <table id="inv-table">
-          <thead><tr><th>Mã vật tư</th><th>Tên vật tư</th><th>Đơn vị</th><th>Số lượng</th><th>Công ty</th><th>Kho</th><th>Hành động</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Mã vật tư</th>
+              <th>Tên vật tư</th>
+              <th>Đơn vị</th>
+              <th>Số lượng tồn</th>
+              <th>Công ty</th>
+              <th>Kho</th>
+              <th style="text-align:right;">Thao tác</th>
+            </tr>
+          </thead>
           <tbody id="inv-tbody"></tbody>
         </table>
       </div>
     </section>
 
-    <!-- Documents -->
+    <!-- Page: Documents -->
     <section id="page-documents" class="card" style="display:none;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
-        <h2>Hồ sơ / Giấy tờ</h2>
-        <button class="btn btn-primary" onclick="app.openModal('modal-documents')">+ Tải lên hồ sơ</button>
+      <div class="card-header-bar">
+        <h2><span>📂</span> Hồ sơ, Quy trình &amp; Tài liệu kỹ thuật</h2>
+        <button class="btn btn-primary" onclick="app.openModal('modal-documents')">
+          <span>+</span> Tải lên hồ sơ
+        </button>
       </div>
+
       <div id="doc-alert" class="alert" style="display:none;"></div>
+
       <div class="table-wrap">
         <table id="doc-table">
-          <thead><tr><th>Mã HS</th><th>Tên hồ sơ</th><th>Loại</th><th>Phòng</th><th>File</th><th>Kích thước</th><th>Tải lên bởi</th><th>Ngày</th><th>Hành động</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Mã HS</th>
+              <th>Tên hồ sơ / tài liệu</th>
+              <th>Loại hồ sơ</th>
+              <th>Liên kết phòng</th>
+              <th>Tệp đính kèm</th>
+              <th>Dung lượng</th>
+              <th>Người tải</th>
+              <th>Ngày tải</th>
+              <th style="text-align:right;">Thao tác</th>
+            </tr>
+          </thead>
           <tbody id="doc-tbody"></tbody>
         </table>
       </div>
@@ -103,19 +220,53 @@
     <!-- Modal: Maintenance -->
     <div id="modal-maintenance" class="modal">
       <div class="modal-content">
-        <h3 style="margin-bottom:16px;">Thêm bản ghi bảo trì</h3>
+        <h3><span>🛠️</span> Thêm bản ghi bảo trì</h3>
         <div id="maint-modal-alert" class="alert alert-danger" style="display:none;"></div>
-        <div class="form-group"><label>Mã phòng</label><input type="text" id="m-maphong" placeholder="P001"></div>
-        <div class="form-group"><label>Tên thiết bị</label><input type="text" id="m-thietbi" placeholder="Máy lạnh chính"></div>
-        <div class="form-group"><label>Loại bảo trì</label><select id="m-loaibdt"><option value="Bảo trì định kỳ">Bảo trì định kỳ</option><option value="Bảo dưỡng">Bảo dưỡng</option><option value="Sửa chữa">Sửa chữa</option><option value="Khác">Khác</option></select></div>
-        <div class="form-group"><label>Ngày thực hiện</label><input type="date" id="m-ngay"></div>
-        <div class="form-group"><label>Ngày kế tiếp</label><input type="date" id="m-kekep"></div>
-        <div class="form-group"><label>Người thực hiện</label><input type="text" id="m-nguoi"></div>
-        <div class="form-group"><label>Kết quả</label><textarea id="m-ketqua" rows="3"></textarea></div>
-        <div class="form-group"><label>Ghi chú</label><textarea id="m-ghichu" rows="2"></textarea></div>
-        <div style="display:flex; gap:10px; margin-top:20px;">
-          <button class="btn btn-primary" onclick="app.saveMaintenance()">Lưu</button>
-          <button class="btn btn-outline" onclick="app.closeModal('modal-maintenance')">Hủy</button>
+        
+        <div class="form-group">
+          <label>Mã phòng máy / Khu vực</label>
+          <input type="text" id="m-maphong" placeholder="Ví dụ: P001">
+        </div>
+        <div class="form-group">
+          <label>Tên thiết bị / máy móc</label>
+          <input type="text" id="m-thietbi" placeholder="Ví dụ: Máy lạnh trung tâm HVAC-01">
+        </div>
+        <div class="form-group">
+          <label>Loại bảo dưỡng / bảo trì</label>
+          <select id="m-loaibdt">
+            <option value="Bảo trì định kỳ">Bảo trì định kỳ</option>
+            <option value="Bảo dưỡng">Bảo dưỡng thiết bị</option>
+            <option value="Sửa chữa">Sửa chữa đột xuất</option>
+            <option value="Hiệu chuẩn">Hiệu chuẩn thiết bị</option>
+            <option value="Khác">Khác</option>
+          </select>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="form-group">
+            <label>Ngày thực hiện</label>
+            <input type="date" id="m-ngay">
+          </div>
+          <div class="form-group">
+            <label>Ngày kế tiếp dự kiến</label>
+            <input type="date" id="m-kekep">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Kỹ thuật viên / Người thực hiện</label>
+          <input type="text" id="m-nguoi" placeholder="Ví dụ: Nguyễn Văn A">
+        </div>
+        <div class="form-group">
+          <label>Kết quả kiểm tra</label>
+          <textarea id="m-ketqua" rows="2" placeholder="Ví dụ: Hoạt động bình thường, đã thay dầu..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Ghi chú thêm</label>
+          <textarea id="m-ghichu" rows="2" placeholder="Ghi chú chi tiết nếu có"></textarea>
+        </div>
+        
+        <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
+          <button class="btn btn-outline" onclick="app.closeModal('modal-maintenance')">Đóng</button>
+          <button class="btn btn-primary" onclick="app.saveMaintenance()"><span>💾</span> Lưu bản ghi</button>
         </div>
       </div>
     </div>
@@ -123,19 +274,64 @@
     <!-- Modal: Inventory -->
     <div id="modal-inventory" class="modal">
       <div class="modal-content">
-        <h3 style="margin-bottom:16px;">Thêm vật tư mới</h3>
+        <h3><span>📦</span> Thêm vật tư kho mới</h3>
         <div id="inv-modal-alert" class="alert alert-danger" style="display:none;"></div>
-        <div class="form-group"><label>Mã vật tư</label><input type="text" id="i-mavt" placeholder="VT001"></div>
-        <div class="form-group"><label>Tên vật tư</label><input type="text" id="i-tenvt" placeholder="Bearing NTN 6204"></div>
-        <div class="form-group"><label>Đơn vị tính</label><input type="text" id="i-dvt" placeholder="cái"></div>
-        <div class="form-group"><label>Số lượng</label><input type="number" id="i-soluong" value="0"></div>
-        <div class="form-group"><label>Công ty</label><select id="i-congty"><option value="VB Pharma">VB Pharma</option><option value="VBTECH">VBTECH</option></select></div>
-        <div class="form-group"><label>Kho</label><input type="text" id="i-kho" placeholder="Kho A"></div>
-        <div class="form-group"><label>Nhà sản xuất</label><input type="text" id="i-nsx" placeholder="NTN"></div>
-        <div class="form-group"><label>Mô tả</label><textarea id="i-mota" rows="2"></textarea></div>
-        <div style="display:flex; gap:10px; margin-top:20px;">
-          <button class="btn btn-primary" onclick="app.saveInventory()">Lưu</button>
-          <button class="btn btn-outline" onclick="app.closeModal('modal-inventory')">Hủy</button>
+        
+        <div style="display:grid; grid-template-columns:1fr 1.5fr; gap:14px;">
+          <div class="form-group">
+            <label>Mã vật tư</label>
+            <input type="text" id="i-mavt" placeholder="Ví dụ: VT003">
+          </div>
+          <div class="form-group">
+            <label>Tên vật tư kỹ thuật</label>
+            <input type="text" id="i-tenvt" placeholder="Ví dụ: Vòng bi NTN 6204">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="form-group">
+            <label>Đơn vị tính</label>
+            <input type="text" id="i-dvt" placeholder="cái, bộ, mét...">
+          </div>
+          <div class="form-group">
+            <label>Số lượng tồn</label>
+            <input type="number" id="i-soluong" value="0" min="0">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="form-group">
+            <label>Đơn vị sở hữu</label>
+            <select id="i-congty">
+              <option value="VB Pharma">VB Pharma</option>
+              <option value="VBTECH">VBTECH</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Kho lưu trữ</label>
+            <input type="text" id="i-kho" placeholder="Kho Cơ điện / Kho A">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="form-group">
+            <label>Giá nhập (VNĐ)</label>
+            <input type="number" id="i-gia" value="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>Nhà sản xuất / Hãng</label>
+            <input type="text" id="i-nsx" placeholder="Ví dụ: SKF, NTN, Omron...">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Mô tả kỹ thuật</label>
+          <textarea id="i-mota" rows="2" placeholder="Thông số kỹ thuật hoặc ghi chú..."></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
+          <button class="btn btn-outline" onclick="app.closeModal('modal-inventory')">Đóng</button>
+          <button class="btn btn-primary" onclick="app.saveInventory()"><span>💾</span> Lưu vật tư</button>
         </div>
       </div>
     </div>
@@ -143,21 +339,64 @@
     <!-- Modal: Documents -->
     <div id="modal-documents" class="modal">
       <div class="modal-content">
-        <h3 style="margin-bottom:16px;">Tải lên hồ sơ mới</h3>
+        <h3><span>📂</span> Tải lên hồ sơ / tài liệu kỹ thuật</h3>
         <div id="doc-modal-alert" class="alert alert-danger" style="display:none;"></div>
-        <div class="form-group"><label>Mã hồ sơ</label><input type="text" id="d-mahs" placeholder="HS001"></div>
-        <div class="form-group"><label>Tên hồ sơ</label><input type="text" id="d-tenhs" placeholder="Quy trình bảo trì máy lạnh"></div>
-        <div class="form-group"><label>Loại hồ sơ</label><select id="d-loaihs"><option value="Quy trình">Quy trình</option><option value="Biểu mẫu">Biểu mẫu</option><option value="Chứng nhận">Chứng nhận</option><option value="Khác">Khác</option></select></div>
-        <div class="form-group"><label>Mã phòng (tùy chọn)</label><input type="text" id="d-maphong" placeholder="P001"></div>
-        <div class="form-group"><label>Mã vật tư (tùy chọn)</label><input type="text" id="d-mavt" placeholder="VT001"></div>
-        <div class="form-group"><label>File đính kèm</label><input type="file" id="d-file"></div>
-        <div class="form-group"><label>Ghi chú</label><textarea id="d-ghichu" rows="2"></textarea></div>
-        <div style="display:flex; gap:10px; margin-top:20px;">
-          <button class="btn btn-primary" onclick="app.saveDocument()">Tải lên</button>
-          <button class="btn btn-outline" onclick="app.closeModal('modal-documents')">Hủy</button>
+        
+        <div style="display:grid; grid-template-columns:1fr 1.5fr; gap:14px;">
+          <div class="form-group">
+            <label>Mã hồ sơ</label>
+            <input type="text" id="d-mahs" placeholder="Ví dụ: HS-001">
+          </div>
+          <div class="form-group">
+            <label>Tên hồ sơ / tài liệu</label>
+            <input type="text" id="d-tenhs" placeholder="Quy trình vận hành máy lạnh">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Loại tài liệu</label>
+          <select id="d-loaihs">
+            <option value="Quy trình chuẩn (SOP)">Quy trình chuẩn (SOP)</option>
+            <option value="Biểu mẫu kiểm tra">Biểu mẫu kiểm tra</option>
+            <option value="CO/CQ &amp; Chứng nhận">CO/CQ &amp; Chứng nhận</option>
+            <option value="Bản vẽ kỹ thuật">Bản vẽ kỹ thuật</option>
+            <option value="Khác">Khác</option>
+          </select>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="form-group">
+            <label>Liên kết mã phòng</label>
+            <input type="text" id="d-maphong" placeholder="P001 (nếu có)">
+          </div>
+          <div class="form-group">
+            <label>Liên kết mã vật tư</label>
+            <input type="text" id="d-mavt" placeholder="VT001 (nếu có)">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Tệp đính kèm (PDF, Ảnh, Docx...)</label>
+          <input type="file" id="d-file" style="padding:8px;">
+        </div>
+
+        <div class="form-group">
+          <label>Ghi chú</label>
+          <textarea id="d-ghichu" rows="2" placeholder="Ghi chú thêm về tài liệu này"></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
+          <button class="btn btn-outline" onclick="app.closeModal('modal-documents')">Đóng</button>
+          <button class="btn btn-primary" onclick="app.saveDocument()"><span>⬆️</span> Tải lên hồ sơ</button>
         </div>
       </div>
     </div>
+
+    <!-- App Footer -->
+    <footer class="app-footer">
+      <div><strong>VB PHARMA &amp; VBTECH</strong> — Hệ Thống Quản Lý Kỹ Thuật Cơ Điện &amp; Kho Vật Tư</div>
+      <div style="margin-top:4px;">Phiên bản 1.0 &bull; Bảo mật nội bộ</div>
+    </footer>
 
   </div>
 </body>
