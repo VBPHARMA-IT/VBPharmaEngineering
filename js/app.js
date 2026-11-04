@@ -37,9 +37,15 @@ const app = {
     document.querySelectorAll('section[id^="page-"]').forEach(el => el.style.display = 'none');
     const el = document.getElementById('page-' + page);
     if (el) el.style.display = 'block';
-    document.querySelectorAll('[data-nav]').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('[data-nav]').forEach(el => {
+      el.classList.remove('active');
+      el.removeAttribute('aria-current');
+    });
     const active = document.querySelector(`[data-nav="${page}"]`);
-    if (active) active.classList.add('active');
+    if (active) {
+      active.classList.add('active');
+      active.setAttribute('aria-current', 'page');
+    }
     if (page === 'dashboard') this.loadDashboard();
     if (page === 'maintenance') this.loadMaintenance();
     if (page === 'inventory') this.loadInventory();
@@ -56,13 +62,10 @@ const app = {
       return;
     }
     try {
-      const res = await fetch(`${API.auth}/login`, {
+      const data = await this.api('/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: user, password: pass })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Đăng nhập thất bại');
       this.token = data.token;
       localStorage.setItem('token', this.token);
       if (data.user) {
@@ -85,11 +88,42 @@ const app = {
     location.reload();
   },
 
+  showLoading(isShow) {
+    const overlay = document.getElementById('loading-overlay');
+    if (!overlay) return;
+    overlay.style.display = isShow ? 'flex' : 'none';
+  },
+
   async api(path, opts = {}) {
-    const headers = { ...authHeaders(), ...opts.headers };
-    const res = await fetch(`${API.base}${path}`, { ...opts, headers });
-    if (res.status === 401) { this.logout(); throw new Error('Phiên làm việc hết hạn'); }
-    return res.json();
+    const isFormData = opts.body instanceof FormData;
+    const headers = isFormData
+      ? { ...authHeaders() } // Không ghi đè Content-Type khi dùng FormData (browser tự đặt boundary)
+      : { ...authHeaders(), ...opts.headers };
+    this.showLoading(true);
+    try {
+      const res = await fetch(`${API.base}${path}`, { ...opts, headers });
+      if (res.status === 401) { this.logout(); throw new Error('Phiên làm việc đã hết hạn'); }
+      if (res.status === 403) {
+        throw new Error('Bạn không có quyền thực hiện thao tác này.');
+      }
+      if (!res.ok) {
+        let msg = 'Đã có lỗi xảy ra, vui lòng thử lại sau.';
+        try {
+          const errData = await res.json();
+          if (errData && errData.message) {
+            msg = errData.message;
+          }
+        } catch (_) {}
+        // Không expose chi tiết lỗi hệ thống (5xx) ra phía client
+        if (res.status >= 500) {
+          msg = 'Hệ thống đang bị quá tải hoặc gặp sự cố. Vui lòng thử lại sau.';
+        }
+        throw new Error(msg);
+      }
+      return await res.json();
+    } finally {
+      this.showLoading(false);
+    }
   },
 
   alert(id, msg, type = 'danger') {
@@ -97,6 +131,8 @@ const app = {
     if (!el) return;
     el.textContent = msg;
     el.className = `alert alert-${type}`;
+    el.setAttribute('role', 'alert');
+    el.setAttribute('aria-live', 'polite');
     el.style.display = 'block';
     setTimeout(() => { if (el) el.style.display = 'none'; }, 5000);
   },
@@ -396,14 +432,10 @@ const app = {
     formData.append('file', fileInput.files[0]);
     
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API.base}/documents/`, {
+      const data = await this.api('/documents/', {
         method: 'POST',
-        headers: { Authorization: token ? `Bearer ${token}` : '' },
         body: formData
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Tải lên thất bại');
       this.closeModal('modal-documents');
       this.loadDocuments();
     } catch (e) { this.alert('doc-modal-alert', e.message); }
