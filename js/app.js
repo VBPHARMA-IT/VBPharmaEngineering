@@ -1,4 +1,4 @@
-import { API, authHeaders } from './config.js';
+import { API, authHeaders } from './config.js?v=20261104-2';
 
 const ROLE_LABELS = {
   admin: '👑 Quản trị viên (Admin)',
@@ -166,8 +166,9 @@ const app = {
 
   async api(path, opts = {}) {
     const isFormData = opts.body instanceof FormData;
+    const token = localStorage.getItem('token');
     const headers = isFormData
-      ? { ...authHeaders(true) }
+      ? (token ? { 'Authorization': `Bearer ${token}` } : {})
       : { ...authHeaders(false), ...opts.headers };
     this.showLoading(true);
     try {
