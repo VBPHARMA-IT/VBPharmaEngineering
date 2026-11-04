@@ -8,7 +8,7 @@
   <link rel="icon" type="image/jpg" href="images/logo - VB Pharma vuong.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script>
@@ -20,7 +20,6 @@
 </head>
 
 <body>
-  <!-- Skip link for accessibility -->
   <a href="#app" class="skip-link">Bỏ qua vào nội dung chính</a>
 
   <div class="app" id="app">
@@ -29,20 +28,27 @@
     <nav class="navbar" id="navbar" style="display:none;">
       <div class="brand" onclick="app.show('dashboard')">
         <img src="images/logo and slogan VB Pharma-02.png" alt="VB Pharma Logo" id="nav-logo">
+        <div class="brand-title">
+          <strong>VB PHARMA &amp; VBTECH</strong>
+          <span>Engineering Command System</span>
+        </div>
       </div>
 
       <div class="nav-links">
-        <a href="#" onclick="app.show('dashboard')" data-nav="dashboard">
+        <a href="#" onclick="app.show('dashboard'); return false;" data-nav="dashboard" id="nav-item-dashboard">
           <span>📊</span> Tổng quan
         </a>
-        <a href="#" onclick="app.show('maintenance')" data-nav="maintenance">
+        <a href="#" onclick="app.show('maintenance'); return false;" data-nav="maintenance" id="nav-item-maintenance">
           <span>🛠️</span> Bảo trì / Bảo dưỡng
         </a>
-        <a href="#" onclick="app.show('inventory')" data-nav="inventory">
+        <a href="#" onclick="app.show('inventory'); return false;" data-nav="inventory" id="nav-item-inventory">
           <span>📦</span> Vật tư kho
         </a>
-        <a href="#" onclick="app.show('documents')" data-nav="documents">
+        <a href="#" onclick="app.show('documents'); return false;" data-nav="documents" id="nav-item-documents">
           <span>📂</span> Hồ sơ / Giấy tờ
+        </a>
+        <a href="#" onclick="app.show('admin'); return false;" data-nav="admin" id="nav-item-admin" class="nav-admin-link" style="display:none;">
+          <span>⚙️</span> Quản trị Hệ thống
         </a>
       </div>
 
@@ -51,183 +57,512 @@
           <div class="user-avatar" id="nav-avatar">A</div>
           <div>
             <div style="font-weight:700; color:#fff;" id="nav-username">Admin</div>
-            <div style="font-size:0.75rem; color:#94a3b8;" id="nav-role">Quản trị viên</div>
+            <div style="font-size:0.75rem; color:#fde68a;" id="nav-role">Quản trị viên</div>
           </div>
         </div>
-        <a href="#" class="btn btn-logout" onclick="app.logout()">
+        <a href="#" class="btn btn-logout" onclick="app.logout(); return false;">
           <span>🚪</span> Thoát
         </a>
       </div>
     </nav>
 
-    <!-- Page: Login Screen -->
+    <!-- Page: Full-Screen Luxury Login Screen -->
     <section id="page-login">
       <div class="login-wrap">
-        <div class="login-card">
-          <div class="login-header">
-            <img src="images/logo - VB Pharma 1 màu.png" alt="VB Pharma Engineering" class="login-logo">
-            <h2>Hệ Thống Cơ Điện</h2>
-            <p>Phần mềm quản lý phòng kỹ thuật &amp; vật tư kho</p>
+        <div class="login-shell">
+          <!-- Left Executive Showcase -->
+          <div class="login-showcase">
+            <div>
+              <div class="showcase-badge">● INDUSTRIAL COMMAND SYSTEM</div>
+              <h1>Hệ Thống Điều Hành<br><span>Cơ Điện &amp; Vật Tư</span></h1>
+              <p class="lead">
+                Nền tảng quản trị kỹ thuật nhà máy chuẩn GMP-WHO dành riêng cho <strong>VB Pharma</strong> &amp; <strong>VBTECH</strong>.
+              </p>
+
+              <div class="showcase-features">
+                <div class="showcase-item">
+                  <div class="ic">🛠️</div>
+                  <div>
+                    <strong>Giám sát Bảo trì &amp; Thiết bị</strong>
+                    <small>Theo dõi lịch bảo dưỡng, hiệu chuẩn và phòng máy theo thời gian thực</small>
+                  </div>
+                </div>
+                <div class="showcase-item">
+                  <div class="ic">📦</div>
+                  <div>
+                    <strong>Quản trị Kho Vật tư Liên thông</strong>
+                    <small>Kiểm soát tồn kho, nhập xuất và định mức vật tư VB Pharma / VBTECH</small>
+                  </div>
+                </div>
+                <div class="showcase-item">
+                  <div class="ic">🛡️</div>
+                  <div>
+                    <strong>Hồ sơ SOP &amp; Phân quyền Bảo mật</strong>
+                    <small>Lưu trữ tài liệu kỹ thuật, kiểm soát quyền truy cập và nhật ký Audit</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="showcase-foot">
+              <span>VB PHARMA ENGINEERING</span>
+              <span>GMP / ISO STANDARD</span>
+            </div>
           </div>
 
-          <div id="login-alert" class="alert alert-danger" role="alert" aria-live="polite" style="display:none;"></div>
+          <!-- Right Login Card -->
+          <div class="login-card">
+            <div class="login-header">
+              <img src="images/logo - VB Pharma 1 màu.png" alt="VB Pharma Engineering" class="login-logo">
+              <h2>Đăng Nhập Hệ Thống</h2>
+              <p>Nhập thông tin tài khoản được cấp phát để tiếp tục</p>
+            </div>
 
-          <div class="form-group">
-            <label for="login-user">Tài khoản</label>
-            <input type="text" id="login-user" placeholder="Nhập tên đăng nhập (vd: admin)" autocomplete="username">
+            <div id="login-alert" class="alert alert-danger" role="alert" aria-live="polite" style="display:none;"></div>
+
+            <div class="form-group">
+              <label for="login-user">Tài khoản</label>
+              <input type="text" id="login-user" placeholder="Nhập tên đăng nhập" autocomplete="username"
+                onkeydown="if(event.key==='Enter') app.login()">
+            </div>
+
+            <div class="form-group">
+              <label for="login-pass">Mật khẩu</label>
+              <input type="password" id="login-pass" placeholder="Nhập mật khẩu" autocomplete="current-password"
+                onkeydown="if(event.key==='Enter') app.login()">
+            </div>
+
+            <button class="btn btn-primary" style="width:100%; margin-top:8px; padding:13px;" onclick="app.login()">
+              <span>🔐</span> Đăng nhập hệ thống
+            </button>
+
+            <div class="login-security-note">
+              <span>🔒</span> Hệ thống nội bộ được bảo vệ — Mọi thao tác đều được ghi nhật ký
+            </div>
           </div>
+        </div>
+      </div>
+    </section>
 
-          <div class="form-group">
-            <label for="login-pass">Mật khẩu</label>
-            <input type="password" id="login-pass" placeholder="Nhập mật khẩu" autocomplete="current-password">
+    <!-- Main Workspace Container -->
+    <main class="app-workspace" id="app-workspace" style="display:none;">
+
+      <!-- Page: Dashboard -->
+      <section id="page-dashboard" class="card" style="display:none;">
+        <div class="card-header-bar">
+          <h2><span>📊</span> Tổng quan hoạt động cơ điện</h2>
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-outline btn-sm" onclick="app.loadDashboard()"><span>🔄</span> Làm mới dữ liệu</button>
           </div>
+        </div>
 
-          <button class="btn btn-primary" style="width:100%; margin-top:10px; padding:12px;" onclick="app.login()">
-            <span>🔐</span> Đăng nhập hệ thống
+        <div class="grid-3" id="dashboard-stats">
+          <!-- Rendered by JS -->
+        </div>
+
+        <div class="card"
+          style="margin-top:28px; box-shadow:none; border:1px solid var(--slate-200); background:#f8fafc;">
+          <div class="card-header-bar" style="margin-bottom:16px;">
+            <h3
+              style="font-size:1.12rem; font-weight:800; color:var(--slate-800); display:flex; align-items:center; gap:8px;">
+              <span>🔔</span> Kế hoạch bảo trì sắp tới (trong 30 ngày)
+            </h3>
+            <button class="btn btn-primary btn-sm" onclick="app.openModal('modal-maintenance')">
+              <span>+</span> Thêm lịch bảo trì
+            </button>
+          </div>
+          <div id="dashboard-upcoming-alert" class="alert alert-info" style="margin-bottom:0;">Đang tải dữ liệu cảnh báo...</div>
+        </div>
+      </section>
+
+      <!-- Page: Maintenance -->
+      <section id="page-maintenance" class="card" style="display:none;">
+        <div class="card-header-bar">
+          <h2><span>🛠️</span> Nhật ký &amp; Lịch bảo trì bảo dưỡng</h2>
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-outline" onclick="app.openModal('modal-room')">
+              <span>🏢</span> + Thêm phòng cơ điện
+            </button>
+            <button class="btn btn-primary" onclick="app.openModal('modal-maintenance')">
+              <span>+</span> Thêm bản ghi bảo trì
+            </button>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <label style="font-weight:700; font-size:0.875rem; color:var(--slate-600);">Lọc phòng máy:</label>
+          <select id="maint-room-filter" onchange="app.loadMaintenance()">
+            <option value="">Tất cả phòng cơ điện</option>
+          </select>
+        </div>
+
+        <div id="maint-alert" class="alert" style="display:none;"></div>
+
+        <div class="table-wrap">
+          <table id="maint-table">
+            <thead>
+              <tr>
+                <th>Mã phòng</th>
+                <th>Thiết bị</th>
+                <th>Loại bảo trì</th>
+                <th>Ngày thực hiện</th>
+                <th>Ngày kế tiếp</th>
+                <th>Người thực hiện</th>
+                <th>Kết quả</th>
+                <th style="text-align:right;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="maint-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Page: Inventory -->
+      <section id="page-inventory" class="card" style="display:none;">
+        <div class="card-header-bar">
+          <h2><span>📦</span> Quản lý vật tư kho (VB Pharma &amp; VBTECH)</h2>
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-outline" onclick="app.openModal('modal-movement')">
+              <span>⇄</span> Phiếu Nhập / Xuất kho
+            </button>
+            <button class="btn btn-primary" onclick="app.openModal('modal-inventory')">
+              <span>+</span> Thêm vật tư mới
+            </button>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <label style="font-weight:700; font-size:0.875rem; color:var(--slate-600);">Bộ lọc:</label>
+          <select id="inv-company-filter" onchange="app.loadInventory()">
+            <option value="">🏢 Tất cả công ty</option>
+            <option value="VB Pharma">VB Pharma</option>
+            <option value="VBTECH">VBTECH</option>
+          </select>
+          <select id="inv-kho-filter" onchange="app.loadInventory()">
+            <option value="">🏪 Tất cả kho vật tư</option>
+          </select>
+        </div>
+
+        <div id="inv-alert" class="alert" style="display:none;"></div>
+
+        <div class="table-wrap">
+          <table id="inv-table">
+            <thead>
+              <tr>
+                <th>Mã vật tư</th>
+                <th>Tên vật tư</th>
+                <th>Đơn vị</th>
+                <th>Số lượng tồn</th>
+                <th>Giá nhập</th>
+                <th>Công ty</th>
+                <th>Kho</th>
+                <th style="text-align:right;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="inv-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Page: Documents -->
+      <section id="page-documents" class="card" style="display:none;">
+        <div class="card-header-bar">
+          <h2><span>📂</span> Hồ sơ, Quy trình &amp; Tài liệu kỹ thuật</h2>
+          <button class="btn btn-primary" onclick="app.openModal('modal-documents')">
+            <span>+</span> Tải lên hồ sơ
           </button>
+        </div>
 
-          <div class="login-hint">
-            Tài khoản quản trị mặc định: <code>admin</code> | Mật khẩu: <code>admin123</code>
+        <div id="doc-alert" class="alert" style="display:none;"></div>
+
+        <div class="table-wrap">
+          <table id="doc-table">
+            <thead>
+              <tr>
+                <th>Mã HS</th>
+                <th>Tên hồ sơ / tài liệu</th>
+                <th>Loại hồ sơ</th>
+                <th>Liên kết phòng</th>
+                <th>Tệp đính kèm</th>
+                <th>Dung lượng</th>
+                <th>Người tải</th>
+                <th>Ngày tải</th>
+                <th style="text-align:right;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="doc-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Page: ADMIN BACKEND CONTROL CENTER -->
+      <section id="page-admin" style="display:none;">
+        <div class="admin-hero">
+          <div>
+            <div class="showcase-badge" style="margin-bottom:8px;">⚙️ SYSTEM ADMINISTRATION CONSOLE</div>
+            <h2>Trung Tâm Quản Trị Hệ Thống (Backend Admin)</h2>
+            <p>Quản lý tài khoản nhân sự, phân quyền truy cập module, cấu hình danh mục phòng máy và kiểm toán hoạt động toàn trang web.</p>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-gold" onclick="app.openCreateUserModal()">
+              <span>👤+</span> Cấp tài khoản mới
+            </button>
+            <button class="btn btn-outline" style="background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.25);" onclick="app.loadAdminPanel()">
+              <span>🔄</span> Làm mới
+            </button>
           </div>
         </div>
-      </div>
-    </section>
 
-    <!-- Page: Dashboard -->
-    <section id="page-dashboard" class="card" style="display:none;">
-      <div class="card-header-bar">
-        <h2><span>📊</span> Tổng quan hoạt động cơ điện</h2>
-        <div style="display:flex; gap:10px;">
-          <button class="btn btn-outline btn-sm" onclick="app.loadDashboard()"><span>🔄</span> Làm mới</button>
-        </div>
-      </div>
+        <div id="admin-alert" class="alert" style="display:none;"></div>
 
-      <div class="grid-3" id="dashboard-stats">
-        <!-- Rendered by JS -->
-      </div>
+        <!-- Admin KPI Summary -->
+        <div class="grid-4" id="admin-stats" style="margin-bottom:24px;"></div>
 
-      <div class="card"
-        style="margin-top:28px; box-shadow:none; border:1px solid var(--slate-200); background:#ffffff;">
-        <div class="card-header-bar" style="margin-bottom:16px;">
-          <h3
-            style="font-size:1.15rem; font-weight:800; color:var(--slate-800); display:flex; align-items:center; gap:8px;">
-            <span>🔔</span> Kế hoạch bảo trì sắp tới (trong 30 ngày)
-          </h3>
-          <button class="btn btn-primary btn-sm" onclick="app.openModal('modal-maintenance')">
-            <span>+</span> Thêm lịch bảo trì
+        <!-- Sub-navigation Tabs inside Admin -->
+        <div class="admin-tabs">
+          <button class="admin-tab-btn active" data-admintab="users" onclick="app.switchAdminTab('users')">
+            <span>👥</span> Tài khoản &amp; Phân quyền
+          </button>
+          <button class="admin-tab-btn" data-admintab="rooms" onclick="app.switchAdminTab('rooms')">
+            <span>🏢</span> Danh mục Phòng máy &amp; Khu vực
+          </button>
+          <button class="admin-tab-btn" data-admintab="logs" onclick="app.switchAdminTab('logs')">
+            <span>📜</span> Nhật ký Hệ thống (Audit Logs)
           </button>
         </div>
-        <div class="alert alert-info" style="margin-bottom:0;">Đang tải dữ liệu cảnh báo...</div>
+
+        <!-- Admin Sub-Tab 1: Users & Permissions -->
+        <div id="admin-tab-users" class="card">
+          <div class="card-header-bar">
+            <h2><span>👥</span> Danh sách Tài khoản &amp; Quyền hạn truy cập</h2>
+            <button class="btn btn-primary" onclick="app.openCreateUserModal()">
+              <span>+</span> Thêm tài khoản
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Tài khoản</th>
+                  <th>Họ và tên</th>
+                  <th>Vai trò (Role)</th>
+                  <th>Quyền truy cập Module</th>
+                  <th>Trạng thái</th>
+                  <th>Ngày tạo</th>
+                  <th style="text-align:right;">Điều khiển</th>
+                </tr>
+              </thead>
+              <tbody id="admin-users-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Admin Sub-Tab 2: Rooms Management -->
+        <div id="admin-tab-rooms" class="card" style="display:none;">
+          <div class="card-header-bar">
+            <h2><span>🏢</span> Quản lý Phòng Cơ Điện &amp; Khu Vực Nhà Máy</h2>
+            <button class="btn btn-primary" onclick="app.openModal('modal-room')">
+              <span>+</span> Thêm phòng / khu vực mới
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mã phòng</th>
+                  <th>Tên phòng / Khu vực</th>
+                  <th>Vị trí / Địa chỉ</th>
+                  <th>Phân loại</th>
+                  <th>Mô tả kỹ thuật</th>
+                  <th style="text-align:right;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="admin-rooms-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Admin Sub-Tab 3: Audit Logs -->
+        <div id="admin-tab-logs" class="card" style="display:none;">
+          <div class="card-header-bar">
+            <h2><span>📜</span> Nhật ký Hoạt động Hệ thống (100 sự kiện gần nhất)</h2>
+            <button class="btn btn-outline btn-sm" style="color:#ef4444; border-color:#fecaca;" onclick="app.clearAuditLogs()">
+              <span>🗑️</span> Xóa lịch sử nhật ký
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Thời gian</th>
+                  <th>Tài khoản</th>
+                  <th>Hành động</th>
+                  <th>Phân hệ</th>
+                  <th>Mã đối tượng</th>
+                  <th>Chi tiết thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="admin-logs-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Modal: Create / Edit User & Permissions (Admin) -->
+    <div id="modal-user" class="modal">
+      <div class="modal-content">
+        <h3 id="modal-user-title"><span>👤</span> Cấp phát / Điều chỉnh Tài khoản</h3>
+        <div id="user-modal-alert" class="alert alert-danger" style="display:none;"></div>
+        <input type="hidden" id="u-id">
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="form-group">
+            <label>Tên đăng nhập (Username)</label>
+            <input type="text" id="u-username" placeholder="Ví dụ: kythuat01">
+          </div>
+          <div class="form-group">
+            <label>Họ và tên nhân sự</label>
+            <input type="text" id="u-fullname" placeholder="Ví dụ: Nguyễn Văn Hải">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="form-group">
+            <label>Vai trò hệ thống (Role)</label>
+            <select id="u-role" onchange="app.onRoleChange()">
+              <option value="admin">👑 Quản trị viên (Full Admin)</option>
+              <option value="manager">🛡️ Quản lý Kỹ thuật (Manager)</option>
+              <option value="user" selected>🛠️ Kỹ thuật viên (Staff)</option>
+              <option value="viewer">👁️ Chỉ xem (Viewer / Kiểm toán)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Trạng thái tài khoản</label>
+            <select id="u-status">
+              <option value="active">🟢 Đang hoạt động</option>
+              <option value="locked">🔴 Tạm khóa truy cập</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label id="u-pass-label">Mật khẩu khởi tạo</label>
+          <input type="password" id="u-password" placeholder="Nhập mật khẩu (để trống nếu giữ nguyên khi sửa)">
+        </div>
+
+        <div class="form-group">
+          <label>Phân quyền truy cập các trang (Module Permissions)</label>
+          <div class="perm-grid">
+            <label class="perm-item">
+              <input type="checkbox" value="dashboard" class="u-perm-cb" checked> 📊 Tổng quan
+            </label>
+            <label class="perm-item">
+              <input type="checkbox" value="maintenance" class="u-perm-cb" checked> 🛠️ Bảo trì / Bảo dưỡng
+            </label>
+            <label class="perm-item">
+              <input type="checkbox" value="inventory" class="u-perm-cb" checked> 📦 Vật tư kho
+            </label>
+            <label class="perm-item">
+              <input type="checkbox" value="documents" class="u-perm-cb" checked> 📂 Hồ sơ / Giấy tờ
+            </label>
+            <label class="perm-item">
+              <input type="checkbox" value="admin" class="u-perm-cb" id="u-perm-admin"> ⚙️ Quản trị Hệ thống
+            </label>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
+          <button class="btn btn-outline" onclick="app.closeModal('modal-user')">Hủy</button>
+          <button class="btn btn-primary" onclick="app.saveUser()"><span>💾</span> Lưu cấu hình tài khoản</button>
+        </div>
       </div>
-    </section>
+    </div>
 
-    <!-- Page: Maintenance -->
-    <section id="page-maintenance" class="card" style="display:none;">
-      <div class="card-header-bar">
-        <h2><span>🛠️</span> Nhật ký &amp; Lịch bảo trì bảo dưỡng</h2>
-        <button class="btn btn-primary" onclick="app.openModal('modal-maintenance')">
-          <span>+</span> Thêm bản ghi mới
-        </button>
+    <!-- Modal: Room Create -->
+    <div id="modal-room" class="modal">
+      <div class="modal-content">
+        <h3><span>🏢</span> Thêm Phòng Cơ Điện / Khu Vực</h3>
+        <div id="room-modal-alert" class="alert alert-danger" style="display:none;"></div>
+
+        <div style="display:grid; grid-template-columns:1fr 1.6fr; gap:14px;">
+          <div class="form-group">
+            <label>Mã phòng / Khu vực</label>
+            <input type="text" id="r-maphong" placeholder="Ví dụ: P003, AHU-B2">
+          </div>
+          <div class="form-group">
+            <label>Tên phòng cơ điện</label>
+            <input type="text" id="r-tenphong" placeholder="Ví dụ: Phòng AHU Khu B">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="form-group">
+            <label>Vị trí / Tầng</label>
+            <input type="text" id="r-diachi" placeholder="Ví dụ: Tầng 2 - Nhà máy GMP">
+          </div>
+          <div class="form-group">
+            <label>Loại hệ thống</label>
+            <input type="text" id="r-loaiphong" placeholder="HVAC, Điện, Khí nén, Nước RO...">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Mô tả kỹ thuật</label>
+          <textarea id="r-mota" rows="2" placeholder="Ghi chú thiết bị chính trong phòng..."></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
+          <button class="btn btn-outline" onclick="app.closeModal('modal-room')">Đóng</button>
+          <button class="btn btn-primary" onclick="app.saveRoom()"><span>💾</span> Lưu phòng máy</button>
+        </div>
       </div>
+    </div>
 
-      <div class="filter-bar">
-        <label style="font-weight:600; font-size:0.875rem; color:var(--slate-600);">Lọc phòng máy:</label>
-        <select id="maint-room-filter" onchange="app.loadMaintenance()">
-          <option value="">Tất cả phòng cơ điện</option>
-        </select>
+    <!-- Modal: Stock Movement (Nhập / Xuất kho) -->
+    <div id="modal-movement" class="modal">
+      <div class="modal-content">
+        <h3><span>⇄</span> Lập Phiếu Nhập / Xuất Kho Vật Tư</h3>
+        <div id="mov-modal-alert" class="alert alert-danger" style="display:none;"></div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="form-group">
+            <label>Mã vật tư</label>
+            <input type="text" id="mv-mavt" placeholder="Ví dụ: VT001">
+          </div>
+          <div class="form-group">
+            <label>Loại giao dịch</label>
+            <select id="mv-loai">
+              <option value="nhap">📥 Nhập thêm vào kho</option>
+              <option value="xuat">📤 Xuất kho sử dụng</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="form-group">
+            <label>Số lượng</label>
+            <input type="number" id="mv-soluong" value="1" min="1">
+          </div>
+          <div class="form-group">
+            <label>Người nhận / Thực hiện</label>
+            <input type="text" id="mv-nguoi" placeholder="Tên kỹ thuật viên">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Lý do / Ghi chú phiếu</label>
+          <textarea id="mv-ghichu" rows="2" placeholder="Ví dụ: Xuất thay vòng bi máy bơm P001"></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
+          <button class="btn btn-outline" onclick="app.closeModal('modal-movement')">Đóng</button>
+          <button class="btn btn-primary" onclick="app.saveMovement()"><span>💾</span> Xác nhận phiếu</button>
+        </div>
       </div>
-
-      <div id="maint-alert" class="alert" style="display:none;"></div>
-
-      <div class="table-wrap">
-        <table id="maint-table">
-          <thead>
-            <tr>
-              <th>Mã phòng</th>
-              <th>Thiết bị</th>
-              <th>Loại bảo trì</th>
-              <th>Ngày thực hiện</th>
-              <th>Người thực hiện</th>
-              <th>Kết quả</th>
-              <th style="text-align:right;">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody id="maint-tbody"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Page: Inventory -->
-    <section id="page-inventory" class="card" style="display:none;">
-      <div class="card-header-bar">
-        <h2><span>📦</span> Quản lý vật tư kho (VB Pharma &amp; VBTECH)</h2>
-        <button class="btn btn-primary" onclick="app.openModal('modal-inventory')">
-          <span>+</span> Thêm vật tư mới
-        </button>
-      </div>
-
-      <div class="filter-bar">
-        <label style="font-weight:600; font-size:0.875rem; color:var(--slate-600);">Bộ lọc:</label>
-        <select id="inv-company-filter" onchange="app.loadInventory()">
-          <option value="">🏢 Tất cả công ty</option>
-          <option value="VB Pharma">VB Pharma</option>
-          <option value="VBTECH">VBTECH</option>
-        </select>
-        <select id="inv-kho-filter" onchange="app.loadInventory()">
-          <option value="">🏪 Tất cả kho vật tư</option>
-        </select>
-      </div>
-
-      <div id="inv-alert" class="alert" style="display:none;"></div>
-
-      <div class="table-wrap">
-        <table id="inv-table">
-          <thead>
-            <tr>
-              <th>Mã vật tư</th>
-              <th>Tên vật tư</th>
-              <th>Đơn vị</th>
-              <th>Số lượng tồn</th>
-              <th>Công ty</th>
-              <th>Kho</th>
-              <th style="text-align:right;">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody id="inv-tbody"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Page: Documents -->
-    <section id="page-documents" class="card" style="display:none;">
-      <div class="card-header-bar">
-        <h2><span>📂</span> Hồ sơ, Quy trình &amp; Tài liệu kỹ thuật</h2>
-        <button class="btn btn-primary" onclick="app.openModal('modal-documents')">
-          <span>+</span> Tải lên hồ sơ
-        </button>
-      </div>
-
-      <div id="doc-alert" class="alert" style="display:none;"></div>
-
-      <div class="table-wrap">
-        <table id="doc-table">
-          <thead>
-            <tr>
-              <th>Mã HS</th>
-              <th>Tên hồ sơ / tài liệu</th>
-              <th>Loại hồ sơ</th>
-              <th>Liên kết phòng</th>
-              <th>Tệp đính kèm</th>
-              <th>Dung lượng</th>
-              <th>Người tải</th>
-              <th>Ngày tải</th>
-              <th style="text-align:right;">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody id="doc-tbody"></tbody>
-        </table>
-      </div>
-    </section>
+    </div>
 
     <!-- Modal: Maintenance -->
     <div id="modal-maintenance" class="modal">
@@ -405,12 +740,12 @@
     </div>
 
     <!-- App Footer -->
-    <footer class="app-footer">
-      <div><strong>VB PHARMA &amp; VBTECH</strong> — Hệ Thống Quản Lý Kỹ Thuật Cơ Điện &amp; Kho Vật Tư</div>
-      <div style="margin-top:4px;">Phiên bản 1.0 &bull; Bảo mật nội bộ</div>
+    <footer class="app-footer" id="app-footer" style="display:none;">
+      <div><strong>VB PHARMA &amp; VBTECH</strong> — Hệ Thống Điều Hành Kỹ Thuật Cơ Điện &amp; Kho Vật Tư</div>
+      <div style="margin-top:4px;">Industrial Command System v2.0 &bull; Bảo mật nội bộ</div>
     </footer>
 
-    <!-- Loading overlay (L1) -->
+    <!-- Loading overlay -->
     <div id="loading-overlay" class="loading-overlay" style="display:none;" role="status" aria-live="polite"
       aria-atomic="true">
       <div class="loading-spinner"></div>
