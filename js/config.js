@@ -1,4 +1,4 @@
-﻿// Cấu hình kết nối API
+// Cấu hình kết nối API
 // Có thể override giá trị này bằng cách gán window.__API_BASE__ trước khi load file này
 // Ví dụ trong index.html: <script>window.__API_BASE__ = 'https://abc123.trycloudflare.com/api';</script>
 // Nếu không override, sẽ dùng giá trị mặc định bên dưới.
@@ -16,13 +16,16 @@ const API = {
   health: `${API_BASE}/health`
 };
 
-// Helper headers
-function authHeaders() {
+// Helper headers (bỏ Content-Type khi gửi FormData để trình duyệt tự đặt multipart boundary)
+function authHeaders(isFormData = false) {
   const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
+  const headers = {
     'Authorization': token ? `Bearer ${token}` : ''
   };
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
+  return headers;
 }
 
 export { API, authHeaders };

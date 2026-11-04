@@ -167,8 +167,8 @@ const app = {
   async api(path, opts = {}) {
     const isFormData = opts.body instanceof FormData;
     const headers = isFormData
-      ? { ...authHeaders() }
-      : { ...authHeaders(), ...opts.headers };
+      ? { ...authHeaders(true) }
+      : { ...authHeaders(false), ...opts.headers };
     this.showLoading(true);
     try {
       const res = await fetch(`${API.base}${path}`, { ...opts, headers });
@@ -568,9 +568,25 @@ const app = {
 
   async downloadDoc(id) {
     try {
-      window.location.href = `${API.base}/documents/download/${id}`;
+      const res = await fetch(`${API.base}/documents/download/${id}`, {
+        headers: authHeaders(true)
+      });
+      if (!res.ok) throw new Error('Không thể tải xuống tài liệu này');
+      const blob = await res.blob();
+      const cd = res.headers.get('Content-Disposition') || '';
+      let fileName = `TaiLieu-${id}`;
+      const match = cd.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
+      if (match && match[1]) fileName = decodeURIComponent(match[1]);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
     } catch (e) {
-      console.error(e);
+      this.alert('doc-alert', e.message);
     }
   },
 
