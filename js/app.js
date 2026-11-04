@@ -102,7 +102,7 @@ const app = {
     this.showLoading(true);
     try {
       const res = await fetch(`${API.base}${path}`, { ...opts, headers });
-      if (res.status === 401) { this.logout(); throw new Error('Phiên làm việc đã hết hạn'); }
+      if (res.status === 401 && path !== '/auth/login') { this.logout(); throw new Error('Phiên làm việc đã hết hạn'); }
       if (res.status === 403) {
         throw new Error('Bạn không có quyền thực hiện thao tác này.');
       }
