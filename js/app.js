@@ -1,4 +1,4 @@
-import { API, authHeaders } from './config.js?v=20261104-2';
+import { API, authHeaders } from './config.js?v=20261105-0906';
 
 const ROLE_LABELS = {
   admin: '👑 Quản trị viên (Admin)',
