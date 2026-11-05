@@ -1,4 +1,4 @@
-import { API, authHeaders } from './config.js?v=20261105-114000';
+import { API, authHeaders } from './config.js?v=20261105-120300';
 
 const ROLE_LABELS = {
   admin: '👑 Quản trị viên (Admin)',
@@ -671,6 +671,21 @@ const app = {
   },
 
   // ---------- Documents ----------
+  fixUtf8FileName(str) {
+    if (!str) return '';
+    try {
+      if (!/[\u0100-\uFFFF]/.test(str) && /[\u0080-\u00FF]/.test(str)) {
+        const bytes = new Uint8Array(str.length);
+        for (let i = 0; i < str.length; i++) {
+          bytes[i] = str.charCodeAt(i) & 0xff;
+        }
+        const decoded = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        if (decoded) return decoded;
+      }
+    } catch (_) {}
+    return str;
+  },
+
   async loadDocuments() {
     try {
       const data = await this.api('/documents/');
@@ -680,15 +695,18 @@ const app = {
       if (rows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:32px; color:#64748b;">Chưa có tài liệu hoặc hồ sơ nào được tải lên</td></tr>`;
       } else {
-        tbody.innerHTML = rows.map(r => `
+        tbody.innerHTML = rows.map(r => {
+          const cleanName = this.fixUtf8FileName(r.file_name);
+          const safeJsName = cleanName.replace(/'/g, "\\'");
+          return `
           <tr>
             <td><strong>${r.ma_hs}</strong></td>
             <td style="font-weight:600; color:#0f172a;">${r.ten_hs}</td>
             <td><span class="badge bg-primary">${r.loai_hs || 'Quy trình'}</span></td>
             <td>${r.ma_phong ? `<span class="badge bg-gray">${r.ma_phong}</span>` : '-'}</td>
             <td>
-              <a href="#" style="color:#0284c7; font-weight:600; display:inline-flex; align-items:center; gap:4px;" onclick="app.downloadDoc(${r.id}); return false;">
-                📄 ${r.file_name}
+              <a href="#" style="color:#0284c7; font-weight:600; display:inline-flex; align-items:center; gap:4px;" onclick="app.downloadDoc(${r.id}, '${safeJsName}'); return false;">
+                📄 ${cleanName}
               </a>
             </td>
             <td>${this.formatSize(r.file_size)}</td>
@@ -698,7 +716,8 @@ const app = {
               <button class="btn btn-outline btn-sm" style="color:#ef4444; border-color:#fecaca;" onclick="app.deleteDoc(${r.id})">Xóa</button>
             </td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
       }
     } catch (e) { this.alert('doc-alert', e.message); }
   },
@@ -723,6 +742,7 @@ const app = {
     formData.append('ma_phong', document.getElementById('d-maphong').value.trim());
     formData.append('ma_vat_tu', document.getElementById('d-mavt').value.trim());
     formData.append('ghi_chu', document.getElementById('d-ghichu').value.trim());
+    formData.append('file_name_utf8', fileInput.files[0].name);
     formData.append('file', fileInput.files[0]);
 
     try {
@@ -735,7 +755,7 @@ const app = {
     } catch (e) { this.alert('doc-modal-alert', e.message); }
   },
 
-  async downloadDoc(id) {
+  async downloadDoc(id, fallbackName = '') {
     try {
       const res = await fetch(`${API.base}/documents/download/${id}`, {
         headers: authHeaders(true)
@@ -743,9 +763,11 @@ const app = {
       if (!res.ok) throw new Error('Không thể tải xuống tài liệu này');
       const blob = await res.blob();
       const cd = res.headers.get('Content-Disposition') || '';
-      let fileName = `TaiLieu-${id}`;
-      const match = cd.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
-      if (match && match[1]) fileName = decodeURIComponent(match[1]);
+      let fileName = fallbackName || `TaiLieu-${id}`;
+      if (!fallbackName) {
+        const match = cd.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
+        if (match && match[1]) fileName = this.fixUtf8FileName(decodeURIComponent(match[1]));
+      }
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
