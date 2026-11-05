@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 
 <head>
@@ -8,15 +8,16 @@
   <link rel="icon" type="image/jpg" href="images/logo - VB Pharma vuong.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap"
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20261105-114000">
   <script>
     // Có thể override API base URL tại đây trước khi load config.js
     // Ví dụ: window.__API_BASE__ = 'https://abc123.trycloudflare.com/api';
   </script>
-  <script type="module" src="js/config.js?v=20261105-093142"></script>
-  <script type="module" src="js/app.js?v=20261105-093142" defer></script>
+  <script type="module" src="js/config.js?v=20261105-114000"></script>
+  <script type="module" src="js/app.js?v=20261105-114000" defer></script>
 </head>
 
 <body>
@@ -47,7 +48,8 @@
         <a href="#" onclick="app.show('documents'); return false;" data-nav="documents" id="nav-item-documents">
           <span>📂</span> Hồ sơ / Giấy tờ
         </a>
-        <a href="#" onclick="app.show('admin'); return false;" data-nav="admin" id="nav-item-admin" class="nav-admin-link" style="display:none;">
+        <a href="#" onclick="app.show('admin'); return false;" data-nav="admin" id="nav-item-admin"
+          class="nav-admin-link" style="display:none;">
           <span>⚙️</span> Quản trị Hệ thống
         </a>
       </div>
@@ -76,7 +78,8 @@
               <div class="showcase-badge">● INDUSTRIAL COMMAND SYSTEM</div>
               <h1>Hệ Thống Điều Hành<br><span>Cơ Điện &amp; Vật Tư</span></h1>
               <p class="lead">
-                Nền tảng quản trị kỹ thuật nhà máy chuẩn GMP-WHO dành riêng cho <strong>VB Pharma</strong> &amp; <strong>VBTECH</strong>.
+                Nền tảng quản trị kỹ thuật nhà máy chuẩn GMP-WHO dành riêng cho <strong>VB Pharma</strong> &amp;
+                <strong>VBTECH</strong>.
               </p>
 
               <div class="showcase-features">
@@ -118,7 +121,8 @@
               <p>Nhập thông tin tài khoản được cấp phát để tiếp tục</p>
             </div>
 
-            <div id="login-alert" class="alert alert-danger" role="alert" aria-live="polite" style="display:none;"></div>
+            <div id="login-alert" class="alert alert-danger" role="alert" aria-live="polite" style="display:none;">
+            </div>
 
             <div class="form-group">
               <label for="login-user">Tài khoản</label>
@@ -152,7 +156,8 @@
         <div class="card-header-bar">
           <h2><span>📊</span> Tổng quan hoạt động cơ điện</h2>
           <div style="display:flex; gap:10px;">
-            <button class="btn btn-outline btn-sm" onclick="app.loadDashboard()"><span>🔄</span> Làm mới dữ liệu</button>
+            <button class="btn btn-outline btn-sm" onclick="app.loadDashboard()"><span>🔄</span> Làm mới dữ
+              liệu</button>
           </div>
         </div>
 
@@ -171,7 +176,8 @@
               <span>+</span> Thêm lịch bảo trì
             </button>
           </div>
-          <div id="dashboard-upcoming-alert" class="alert alert-info" style="margin-bottom:0;">Đang tải dữ liệu cảnh báo...</div>
+          <div id="dashboard-upcoming-alert" class="alert alert-info" style="margin-bottom:0;">Đang tải dữ liệu cảnh
+            báo...</div>
         </div>
       </section>
 
@@ -222,7 +228,7 @@
         <div class="card-header-bar">
           <h2><span>📦</span> Quản lý vật tư kho (VB Pharma &amp; VBTECH)</h2>
           <div style="display:flex; gap:10px;">
-            <button class="btn btn-outline" onclick="app.openModal('modal-movement')">
+            <button class="btn btn-outline" onclick="app.openMovementModal()">
               <span>⇄</span> Phiếu Nhập / Xuất kho
             </button>
             <button class="btn btn-primary" onclick="app.openModal('modal-inventory')">
@@ -232,7 +238,9 @@
         </div>
 
         <div class="filter-bar">
-          <label style="font-weight:700; font-size:0.875rem; color:var(--slate-600);">Bộ lọc:</label>
+          <div class="inv-search-box">
+            <input type="text" id="inv-search-input" placeholder="🔍 Tìm kiếm theo tên vật tư, mã vật tư, hãng sản xuất..." oninput="app.renderInventoryTable()">
+          </div>
           <select id="inv-company-filter" onchange="app.loadInventory()">
             <option value="">🏢 Tất cả công ty</option>
             <option value="VB Pharma">VB Pharma</option>
@@ -253,7 +261,7 @@
                 <th>Tên vật tư</th>
                 <th>Đơn vị</th>
                 <th>Số lượng tồn</th>
-                <th>Giá nhập</th>
+                <th>Hãng / NSX</th>
                 <th>Công ty</th>
                 <th>Kho</th>
                 <th style="text-align:right;">Thao tác</th>
@@ -301,13 +309,16 @@
           <div>
             <div class="showcase-badge" style="margin-bottom:8px;">⚙️ SYSTEM ADMINISTRATION CONSOLE</div>
             <h2>Trung Tâm Quản Trị Hệ Thống (Backend Admin)</h2>
-            <p>Quản lý tài khoản nhân sự, phân quyền truy cập module, cấu hình danh mục phòng máy và kiểm toán hoạt động toàn trang web.</p>
+            <p>Quản lý tài khoản nhân sự, phân quyền truy cập module, cấu hình danh mục phòng máy và kiểm toán hoạt động
+              toàn trang web.</p>
           </div>
           <div style="display:flex; gap:10px;">
             <button class="btn btn-gold" onclick="app.openCreateUserModal()">
               <span>👤+</span> Cấp tài khoản mới
             </button>
-            <button class="btn btn-outline" style="background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.25);" onclick="app.loadAdminPanel()">
+            <button class="btn btn-outline"
+              style="background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.25);"
+              onclick="app.loadAdminPanel()">
               <span>🔄</span> Làm mới
             </button>
           </div>
@@ -387,7 +398,8 @@
         <div id="admin-tab-logs" class="card" style="display:none;">
           <div class="card-header-bar">
             <h2><span>📜</span> Nhật ký Hoạt động Hệ thống (100 sự kiện gần nhất)</h2>
-            <button class="btn btn-outline btn-sm" style="color:#ef4444; border-color:#fecaca;" onclick="app.clearAuditLogs()">
+            <button class="btn btn-outline btn-sm" style="color:#ef4444; border-color:#fecaca;"
+              onclick="app.clearAuditLogs()">
               <span>🗑️</span> Xóa lịch sử nhật ký
             </button>
           </div>
@@ -527,11 +539,18 @@
         <h3><span>⇄</span> Lập Phiếu Nhập / Xuất Kho Vật Tư</h3>
         <div id="mov-modal-alert" class="alert alert-danger" style="display:none;"></div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-          <div class="form-group">
-            <label>Mã vật tư</label>
-            <input type="text" id="mv-mavt" placeholder="Ví dụ: VT001">
+        <div class="form-group autocomplete-group">
+          <label>Tìm kiếm &amp; Chọn vật tư (theo Tên vật tư hoặc Mã vật tư)</label>
+          <div class="autocomplete-wrap">
+            <input type="text" id="mv-search" placeholder="🔍 Gõ tên vật tư hoặc mã VT để hiện danh sách gợi ý..." autocomplete="off"
+              oninput="app.onMovementSearchInput()" onfocus="app.onMovementSearchInput()">
+            <input type="hidden" id="mv-mavt">
+            <div id="mv-suggestions" class="autocomplete-list" style="display:none;"></div>
           </div>
+          <div id="mv-selected-card" class="selected-material-card" style="display:none;"></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
           <div class="form-group">
             <label>Loại giao dịch</label>
             <select id="mv-loai">
@@ -539,17 +558,15 @@
               <option value="xuat">📤 Xuất kho sử dụng</option>
             </select>
           </div>
-        </div>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
           <div class="form-group">
             <label>Số lượng</label>
             <input type="number" id="mv-soluong" value="1" min="1">
           </div>
-          <div class="form-group">
-            <label>Người nhận / Thực hiện</label>
-            <input type="text" id="mv-nguoi" placeholder="Tên kỹ thuật viên">
-          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Người nhận / Thực hiện</label>
+          <input type="text" id="mv-nguoi" placeholder="Tên kỹ thuật viên">
         </div>
 
         <div class="form-group">
@@ -660,15 +677,9 @@
           </div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-          <div class="form-group">
-            <label>Giá nhập (VNĐ)</label>
-            <input type="number" id="i-gia" value="0" min="0">
-          </div>
-          <div class="form-group">
-            <label>Nhà sản xuất / Hãng</label>
-            <input type="text" id="i-nsx" placeholder="Ví dụ: SKF, NTN, Omron...">
-          </div>
+        <div class="form-group">
+          <label>Nhà sản xuất / Hãng</label>
+          <input type="text" id="i-nsx" placeholder="Ví dụ: SKF, NTN, Omron...">
         </div>
 
         <div class="form-group">

@@ -1,4 +1,4 @@
-﻿import { API, authHeaders } from './config.js?v=20261105-093142';
+import { API, authHeaders } from './config.js?v=20261105-114000';
 
 const ROLE_LABELS = {
   admin: '👑 Quản trị viên (Admin)',
@@ -19,8 +19,16 @@ const app = {
   token: localStorage.getItem('token') || '',
   currentUser: null,
   adminUsersCache: [],
+  inventoryCache: [],
+  allInventoryCache: [],
 
   async init() {
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.autocomplete-wrap')) {
+        const listEl = document.getElementById('mv-suggestions');
+        if (listEl) listEl.style.display = 'none';
+      }
+    });
     this.token = localStorage.getItem('token') || '';
     if (this.token) {
       await this.refreshCurrentUser();
@@ -395,6 +403,16 @@ const app = {
   },
 
   // ---------- Inventory ----------
+  normalizeText(str) {
+    return String(str || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .toLowerCase()
+      .trim();
+  },
+
   async loadInventory() {
     const congTy = document.getElementById('inv-company-filter').value;
     const kho = document.getElementById('inv-kho-filter').value;
@@ -404,58 +422,185 @@ const app = {
     if (kho) params.push('kho=' + encodeURIComponent(kho));
     if (params.length) url += '?' + params.join('&');
     try {
-      const data = await this.api(url);
+      const [data, allData] = await Promise.all([
+        this.api(url),
+        params.length ? this.api('/inventory/') : Promise.resolve(null)
+      ]);
       const rows = data.data || [];
-      const tbody = document.getElementById('inv-tbody');
+      this.inventoryCache = rows;
+      this.allInventoryCache = allData ? (allData.data || rows) : rows;
 
       const khoSet = new Set();
-      rows.forEach(r => { if (r.kho) khoSet.add(r.kho); });
+      this.allInventoryCache.forEach(r => { if (r.kho) khoSet.add(r.kho); });
       const khoSelect = document.getElementById('inv-kho-filter');
       const curKho = khoSelect.value;
       khoSelect.innerHTML = '<option value="">🏪 Tất cả kho vật tư</option>' +
         Array.from(khoSet).map(k => `<option value="${k}" ${k === curKho ? 'selected' : ''}>${k}</option>`).join('');
 
-      if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:#64748b;">Không tìm thấy vật tư nào trong kho</td></tr>`;
-      } else {
-        tbody.innerHTML = rows.map(r => {
-          const compBadge = r.cong_ty === 'VBTECH'
-            ? '<span class="badge bg-vbtech">⚡ VBTECH</span>'
-            : '<span class="badge bg-vbpharma">🏢 VB Pharma</span>';
-
-          const qtyDisplay = r.so_luong <= 5
-            ? `<span style="color:#ef4444; font-weight:800;">${r.so_luong}</span> <span class="badge bg-danger">Sắp hết</span>`
-            : `<strong>${r.so_luong}</strong>`;
-
-          return `
-            <tr>
-              <td><code style="font-weight:700; color:#1e40af; background:#eff6ff; padding:2px 6px; border-radius:4px;">${r.ma_vat_tu}</code></td>
-              <td style="font-weight:600; color:#0f172a;">${r.ten_vat_tu}</td>
-              <td>${r.don_vi_tinh || '-'}</td>
-              <td>${qtyDisplay}</td>
-              <td>${this.formatMoney(r.gia_nhap)}</td>
-              <td>${compBadge}</td>
-              <td><span class="badge bg-gray">${r.kho || 'Kho chung'}</span></td>
-              <td style="text-align:right;">
-                <button class="btn btn-outline btn-sm" style="color:#ef4444; border-color:#fecaca;" onclick="app.deleteInventory('${r.ma_vat_tu}')">
-                  Xóa
-                </button>
-              </td>
-            </tr>
-          `;
-        }).join('');
-      }
+      this.renderInventoryTable();
     } catch (e) { this.alert('inv-alert', e.message); }
   },
 
+  renderInventoryTable() {
+    const tbody = document.getElementById('inv-tbody');
+    if (!tbody) return;
+    const searchEl = document.getElementById('inv-search-input');
+    const q = this.normalizeText(searchEl ? searchEl.value : '');
+
+    const filtered = (this.inventoryCache || []).filter(r => {
+      if (!q) return true;
+      const haystack = this.normalizeText(
+        `${r.ma_vat_tu} ${r.ten_vat_tu} ${r.nha_san_xuat || ''} ${r.kho || ''} ${r.mo_ta || ''} ${r.don_vi_tinh || ''}`
+      );
+      return haystack.includes(q);
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:#64748b;">Không tìm thấy vật tư nào phù hợp</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(r => {
+      const compBadge = r.cong_ty === 'VBTECH'
+        ? '<span class="badge bg-vbtech">⚡ VBTECH</span>'
+        : '<span class="badge bg-vbpharma">🏢 VB Pharma</span>';
+
+      const qtyDisplay = r.so_luong <= 5
+        ? `<span style="color:#ef4444; font-weight:800;">${r.so_luong}</span> <span class="badge bg-danger">Sắp hết</span>`
+        : `<strong>${r.so_luong}</strong>`;
+
+      return `
+        <tr>
+          <td><code style="font-weight:700; color:#1e40af; background:#eff6ff; padding:2px 6px; border-radius:4px;">${r.ma_vat_tu}</code></td>
+          <td style="font-weight:600; color:#0f172a;">${r.ten_vat_tu}</td>
+          <td>${r.don_vi_tinh || '-'}</td>
+          <td>${qtyDisplay}</td>
+          <td>${r.nha_san_xuat || '<span style="color:#94a3b8;">-</span>'}</td>
+          <td>${compBadge}</td>
+          <td><span class="badge bg-gray">${r.kho || 'Kho chung'}</span></td>
+          <td style="text-align:right; white-space:nowrap;">
+            <button class="btn btn-outline btn-sm" style="color:#1d4ed8; border-color:#bfdbfe;" onclick="app.openMovementModal('${r.ma_vat_tu}')">
+              ⇄ Nhập/Xuất
+            </button>
+            <button class="btn btn-outline btn-sm" style="color:#ef4444; border-color:#fecaca;" onclick="app.deleteInventory('${r.ma_vat_tu}')">
+              Xóa
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  },
+
+  async openMovementModal(preselectedMaVt = '') {
+    if (!this.allInventoryCache || this.allInventoryCache.length === 0) {
+      try {
+        const res = await this.api('/inventory/');
+        this.allInventoryCache = res.data || [];
+      } catch (_) {}
+    }
+    const searchInput = document.getElementById('mv-search');
+    const hiddenMaVt = document.getElementById('mv-mavt');
+    const cardEl = document.getElementById('mv-selected-card');
+    const listEl = document.getElementById('mv-suggestions');
+
+    if (searchInput) searchInput.value = '';
+    if (hiddenMaVt) hiddenMaVt.value = '';
+    if (cardEl) {
+      cardEl.style.display = 'none';
+      cardEl.innerHTML = '';
+    }
+    if (listEl) listEl.style.display = 'none';
+
+    document.getElementById('mv-soluong').value = 1;
+    document.getElementById('mv-ghichu').value = '';
+
+    if (preselectedMaVt) {
+      this.selectMovementMaterial(preselectedMaVt);
+    }
+
+    this.openModal('modal-movement');
+  },
+
+  onMovementSearchInput() {
+    const searchInput = document.getElementById('mv-search');
+    const listEl = document.getElementById('mv-suggestions');
+    const hiddenMaVt = document.getElementById('mv-mavt');
+    const cardEl = document.getElementById('mv-selected-card');
+    if (!searchInput || !listEl) return;
+
+    const raw = searchInput.value.trim();
+    const q = this.normalizeText(raw);
+
+    // Nếu người dùng đang sửa text khác với vật tư đã chọn thì reset lựa chọn cũ
+    if (hiddenMaVt && hiddenMaVt.value) {
+      const curItem = (this.allInventoryCache || []).find(x => x.ma_vat_tu === hiddenMaVt.value);
+      if (!curItem || raw !== `${curItem.ten_vat_tu} (${curItem.ma_vat_tu})`) {
+        hiddenMaVt.value = '';
+        if (cardEl) cardEl.style.display = 'none';
+      }
+    }
+
+    const source = this.allInventoryCache || this.inventoryCache || [];
+    const matches = source.filter(r => {
+      if (!q) return true;
+      const hay = this.normalizeText(`${r.ten_vat_tu} ${r.ma_vat_tu} ${r.nha_san_xuat || ''} ${r.kho || ''}`);
+      return hay.includes(q);
+    }).slice(0, 15);
+
+    if (matches.length === 0) {
+      listEl.innerHTML = `<div style="padding:12px 14px; color:#64748b; font-size:0.86rem;">Không tìm thấy vật tư phù hợp với "${raw}"</div>`;
+      listEl.style.display = 'block';
+      return;
+    }
+
+    listEl.innerHTML = matches.map(r => `
+      <div class="autocomplete-item" onclick="app.selectMovementMaterial('${r.ma_vat_tu}')">
+        <div class="autocomplete-item-main">
+          <div class="autocomplete-item-name">${r.ten_vat_tu}</div>
+          <div class="autocomplete-item-meta">
+            <code style="color:#1d4ed8; font-weight:700;">${r.ma_vat_tu}</code>
+            <span>• ${r.cong_ty}</span>
+            <span>• ${r.kho || 'Kho chung'}</span>
+          </div>
+        </div>
+        <div class="autocomplete-item-stock">Tồn: ${r.so_luong} ${r.don_vi_tinh || ''}</div>
+      </div>
+    `).join('');
+    listEl.style.display = 'block';
+  },
+
+  selectMovementMaterial(maVt) {
+    const source = this.allInventoryCache || this.inventoryCache || [];
+    const item = source.find(x => x.ma_vat_tu === maVt);
+    if (!item) return;
+
+    const searchInput = document.getElementById('mv-search');
+    const hiddenMaVt = document.getElementById('mv-mavt');
+    const listEl = document.getElementById('mv-suggestions');
+    const cardEl = document.getElementById('mv-selected-card');
+
+    if (hiddenMaVt) hiddenMaVt.value = item.ma_vat_tu;
+    if (searchInput) searchInput.value = `${item.ten_vat_tu} (${item.ma_vat_tu})`;
+    if (listEl) listEl.style.display = 'none';
+    if (cardEl) {
+      cardEl.innerHTML = `
+        <div>
+          ✅ Đã chọn: <strong>${item.ten_vat_tu}</strong>
+          <code style="margin-left:6px; background:#dbeafe; padding:2px 6px; border-radius:4px; font-weight:700;">${item.ma_vat_tu}</code>
+        </div>
+        <div>Tồn hiện tại: <strong>${item.so_luong} ${item.don_vi_tinh || ''}</strong></div>
+      `;
+      cardEl.style.display = 'flex';
+    }
+  },
+
   async saveInventory() {
-    const giaInput = document.getElementById('i-gia');
     const payload = {
       ma_vat_tu: document.getElementById('i-mavt').value.trim(),
       ten_vat_tu: document.getElementById('i-tenvt').value.trim(),
       don_vi_tinh: document.getElementById('i-dvt').value.trim(),
       so_luong: parseInt(document.getElementById('i-soluong').value) || 0,
-      gia_nhap: giaInput ? (parseFloat(giaInput.value) || 0) : 0,
+      gia_nhap: 0,
       nha_san_xuat: document.getElementById('i-nsx').value.trim(),
       cong_ty: document.getElementById('i-congty').value,
       kho: document.getElementById('i-kho').value.trim(),
@@ -468,20 +613,43 @@ const app = {
     try {
       await this.api('/inventory/', { method: 'POST', body: JSON.stringify(payload) });
       this.closeModal('modal-inventory');
+      document.getElementById('i-mavt').value = '';
+      document.getElementById('i-tenvt').value = '';
       this.loadInventory();
     } catch (e) { this.alert('inv-modal-alert', e.message); }
   },
 
   async saveMovement() {
+    let maVt = document.getElementById('mv-mavt').value.trim();
+    const rawSearch = (document.getElementById('mv-search')?.value || '').trim();
+
+    if (!maVt && rawSearch) {
+      const q = this.normalizeText(rawSearch);
+      const source = this.allInventoryCache || this.inventoryCache || [];
+      const exact = source.find(x =>
+        this.normalizeText(x.ma_vat_tu) === q ||
+        this.normalizeText(x.ten_vat_tu) === q ||
+        `${x.ten_vat_tu} (${x.ma_vat_tu})` === rawSearch
+      );
+      if (exact) {
+        maVt = exact.ma_vat_tu;
+      } else {
+        const partial = source.filter(x =>
+          this.normalizeText(`${x.ten_vat_tu} ${x.ma_vat_tu}`).includes(q)
+        );
+        if (partial.length === 1) maVt = partial[0].ma_vat_tu;
+      }
+    }
+
     const payload = {
-      ma_vat_tu: document.getElementById('mv-mavt').value.trim(),
+      ma_vat_tu: maVt,
       loai: document.getElementById('mv-loai').value,
       so_luong: parseInt(document.getElementById('mv-soluong').value) || 0,
       nguoi_thuc_hien: document.getElementById('mv-nguoi').value.trim(),
       ghi_chu: document.getElementById('mv-ghichu').value.trim()
     };
     if (!payload.ma_vat_tu || payload.so_luong <= 0) {
-      this.alert('mov-modal-alert', 'Vui lòng nhập mã vật tư và số lượng hợp lệ');
+      this.alert('mov-modal-alert', 'Vui lòng tìm và chọn một vật tư từ danh sách gợi ý cùng số lượng hợp lệ');
       return;
     }
     try {
@@ -637,10 +805,10 @@ const app = {
           </div>
         </div>
         <div class="stat">
-          <div class="stat-icon" style="background:#ecfdf5; color:#047857; border-color:#a7f3d0;">💰</div>
+          <div class="stat-icon" style="background:#ecfdf5; color:#047857; border-color:#a7f3d0;">📦</div>
           <div class="stat-content">
-            <div class="value" style="font-size:1.35rem;">${this.formatMoney(st.totalValue || 0)}</div>
-            <div class="label">Tổng giá trị kho vật tư</div>
+            <div class="value">${st.totalItems || 0}</div>
+            <div class="label">Danh mục vật tư kho</div>
           </div>
         </div>
         <div class="stat">
