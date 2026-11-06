@@ -1,10 +1,15 @@
-import { API, authHeaders } from './config.js?v=20261106-171000';
+import { API, authHeaders } from './config.js?v=20261106-171900';
 
 const ROLE_LABELS = {
   admin: '👑 Quản trị viên (Admin)',
   manager: '🛡️ Quản lý Kỹ thuật',
   user: '🛠️ Kỹ thuật viên',
   viewer: '👁️ Chỉ xem (Viewer)'
+};
+
+const FIXED_ACCOUNT_NAMES = {
+  admin: 'Nguyễn Thành Chung',
+  tpcd: 'Nguyễn Huy Tùng'
 };
 
 const PERM_LABELS = {
@@ -79,20 +84,77 @@ const app = {
     return moduleName !== 'admin';
   },
 
+  getFixedAccountIdentity(userObj = null) {
+    const u = userObj || this.currentUser;
+    if (!u) return { username: 'admin', fullName: 'Nguyễn Thành Chung' };
+    const uname = String(u.username || 'admin').trim();
+    const lower = uname.toLowerCase();
+    let fullName = String(u.full_name || '').trim();
+    if (FIXED_ACCOUNT_NAMES[lower] && (!fullName || fullName === 'Quản trị viên' || fullName.toLowerCase() === lower)) {
+      fullName = FIXED_ACCOUNT_NAMES[lower];
+    }
+    if (!fullName) {
+      fullName = FIXED_ACCOUNT_NAMES[lower] || uname;
+    }
+    return { username: uname, fullName };
+  },
+
+  parseMovementActor(rawActor) {
+    const raw = String(rawActor || '').trim();
+    if (raw.includes('|')) {
+      const parts = raw.split('|').map(s => s.trim());
+      const tk = parts[0] || 'admin';
+      const lowerTk = tk.toLowerCase();
+      const ten = parts[1] || FIXED_ACCOUNT_NAMES[lowerTk] || tk;
+      return { username: tk, fullName: ten };
+    }
+    const lower = raw.toLowerCase();
+    if (!raw || lower === 'admin' || lower === 'chung' || lower === 'quản trị viên') {
+      return { username: 'admin', fullName: FIXED_ACCOUNT_NAMES.admin };
+    }
+    if (lower === 'tpcd' || lower === 'nguyễn huy tùng' || lower === 'nguyen huy tung') {
+      return { username: 'TPCD', fullName: FIXED_ACCOUNT_NAMES.tpcd };
+    }
+    const foundUser = (this.adminUsersCache || []).find(
+      u => u.username.toLowerCase() === lower || (u.full_name && u.full_name.toLowerCase() === lower)
+    );
+    if (foundUser) {
+      const iden = this.getFixedAccountIdentity(foundUser);
+      return { username: iden.username, fullName: iden.fullName };
+    }
+    if (this.currentUser && (
+      this.currentUser.username.toLowerCase() === lower ||
+      (this.currentUser.full_name && this.currentUser.full_name.toLowerCase() === lower)
+    )) {
+      return this.getFixedAccountIdentity(this.currentUser);
+    }
+    if (FIXED_ACCOUNT_NAMES[lower]) {
+      return { username: raw, fullName: FIXED_ACCOUNT_NAMES[lower] };
+    }
+    return { username: raw, fullName: raw };
+  },
+
   updateUserUI() {
     try {
       const userRaw = localStorage.getItem('user');
       const user = this.currentUser || (userRaw ? JSON.parse(userRaw) : null);
       if (user) {
         this.currentUser = user;
+        const iden = this.getFixedAccountIdentity(user);
         const nameEl = document.getElementById('nav-username');
         const roleEl = document.getElementById('nav-role');
         const avatarEl = document.getElementById('nav-avatar');
-        if (nameEl) nameEl.textContent = user.full_name || user.username || 'Admin';
+        if (nameEl) nameEl.textContent = `${iden.fullName} (${iden.username})`;
         if (roleEl) roleEl.textContent = ROLE_LABELS[user.role] || 'Kỹ thuật viên';
         if (avatarEl) {
-          const letter = (user.full_name || user.username || 'A').charAt(0).toUpperCase();
+          const letter = (iden.fullName || iden.username || 'A').charAt(0).toUpperCase();
           avatarEl.textContent = letter;
+        }
+
+        // Gắn cố định tên người thực hiện trong phiếu Nhập/Xuất theo tài khoản
+        const nguoiInput = document.getElementById('mv-nguoi');
+        if (nguoiInput) {
+          nguoiInput.value = `${iden.fullName} (${iden.username})`;
         }
 
         // Ẩn/hiện các mục điều hướng theo phân quyền
@@ -107,6 +169,12 @@ const app = {
         const invAdminEl = document.getElementById('inv-admin-actions');
         if (invAdminEl) {
           invAdminEl.style.display = (user.role === 'admin') ? 'flex' : 'none';
+        }
+
+        // Phần 3 (Nhật ký cập nhật Nhập/Xuất) chỉ hiển thị trên Admin hệ thống và Quản lý phòng
+        const historyPanelEl = document.getElementById('inv-history-panel');
+        if (historyPanelEl) {
+          historyPanelEl.style.display = (user.role === 'admin' || user.role === 'manager') ? 'block' : 'none';
         }
       }
     } catch (_) {}
@@ -425,15 +493,25 @@ const app = {
     return Boolean(this.currentUser && this.currentUser.role === 'admin');
   },
 
+  isAdminOrManager() {
+    return Boolean(this.currentUser && (this.currentUser.role === 'admin' || this.currentUser.role === 'manager'));
+  },
+
   async loadInventory() {
     const invAdminEl = document.getElementById('inv-admin-actions');
     if (invAdminEl) {
       invAdminEl.style.display = this.isAdmin() ? 'flex' : 'none';
     }
 
+    const historyPanelEl = document.getElementById('inv-history-panel');
+    if (historyPanelEl) {
+      historyPanelEl.style.display = this.isAdminOrManager() ? 'block' : 'none';
+    }
+
+    const iden = this.getFixedAccountIdentity(this.currentUser);
     const nguoiInput = document.getElementById('mv-nguoi');
-    if (nguoiInput && !nguoiInput.value && this.currentUser) {
-      nguoiInput.value = this.currentUser.full_name || this.currentUser.username || '';
+    if (nguoiInput) {
+      nguoiInput.value = `${iden.fullName} (${iden.username})`;
     }
 
     const congTy = document.getElementById('inv-company-filter').value;
@@ -517,6 +595,10 @@ const app = {
   renderMovementHistory() {
     const tbody = document.getElementById('inv-movements-tbody');
     if (!tbody) return;
+    if (!this.isAdminOrManager()) {
+      tbody.innerHTML = '';
+      return;
+    }
     const q = this.normalizeText(document.getElementById('mov-history-search')?.value || '');
     const typeFilter = document.getElementById('mov-history-type')?.value || '';
 
@@ -528,12 +610,13 @@ const app = {
       if (!q) return true;
       const item = itemMap[m.ma_vat_tu] || {};
       const ten = m.ten_vat_tu || item.ten_vat_tu || '';
-      const hay = this.normalizeText(`${m.ma_vat_tu} ${ten} ${m.nguoi_thuc_hien || ''} ${m.ghi_chu || ''}`);
+      const actor = this.parseMovementActor(m.nguoi_thuc_hien);
+      const hay = this.normalizeText(`${m.ma_vat_tu} ${ten} ${actor.username} ${actor.fullName} ${m.ghi_chu || ''}`);
       return hay.includes(q);
     });
 
     if (list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#64748b;">Chưa có phiếu nhập/xuất kho nào phù hợp</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:#64748b;">Chưa có phiếu nhập/xuất kho nào phù hợp</td></tr>`;
       return;
     }
 
@@ -548,6 +631,7 @@ const app = {
       const deltaHtml = isNhap
         ? `<strong style="color:#047857;">+${m.so_luong} ${dvt}</strong>`
         : `<strong style="color:#b91c1c;">-${m.so_luong} ${dvt}</strong>`;
+      const actor = this.parseMovementActor(m.nguoi_thuc_hien);
 
       return `
         <tr>
@@ -556,7 +640,8 @@ const app = {
           <td><code style="font-weight:700; color:#1e40af;">${m.ma_vat_tu}</code></td>
           <td style="font-weight:600; color:#0f172a;">${tenVt}</td>
           <td>${deltaHtml}</td>
-          <td>${m.nguoi_thuc_hien || '-'}</td>
+          <td><code style="font-weight:700; color:#0f172a; background:#f1f5f9; padding:3px 8px; border-radius:4px;">${actor.username}</code></td>
+          <td style="font-weight:600; color:#1e293b;">${actor.fullName}</td>
           <td>${m.ghi_chu || '<span style="color:#94a3b8;">-</span>'}</td>
         </tr>
       `;
@@ -731,11 +816,12 @@ const app = {
       }
     }
 
+    const iden = this.getFixedAccountIdentity(this.currentUser);
     const payload = {
       ma_vat_tu: maVt,
       loai: document.getElementById('mv-loai').value,
       so_luong: parseInt(document.getElementById('mv-soluong').value) || 0,
-      nguoi_thuc_hien: document.getElementById('mv-nguoi').value.trim(),
+      nguoi_thuc_hien: `${iden.username} | ${iden.fullName}`,
       ghi_chu: document.getElementById('mv-ghichu').value.trim()
     };
     if (!payload.ma_vat_tu || payload.so_luong <= 0) {
@@ -1090,6 +1176,7 @@ const app = {
     (this.allInventoryCache || []).forEach(it => { itemMap[it.ma_vat_tu] = it; });
     const sheet2Data = (this.movementsCache || []).map((m, idx) => {
       const it = itemMap[m.ma_vat_tu] || {};
+      const actor = this.parseMovementActor(m.nguoi_thuc_hien);
       return {
         'STT': idx + 1,
         'Thời gian': m.ngay_thuc_hien || '',
@@ -1098,7 +1185,8 @@ const app = {
         'Tên vật tư': m.ten_vat_tu || it.ten_vat_tu || '',
         'Đơn vị tính': m.don_vi_tinh || it.don_vi_tinh || '',
         'Số lượng': m.so_luong || 0,
-        'Người thực hiện': m.nguoi_thuc_hien || '',
+        'Tài khoản thực hiện': actor.username,
+        'Người thực hiện': actor.fullName,
         'Lý do / Ghi chú': m.ghi_chu || ''
       };
     });

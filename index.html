@@ -11,14 +11,14 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20261106-171000">
+  <link rel="stylesheet" href="css/style.css?v=20261106-171900">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
     // Có thể override API base URL tại đây trước khi load config.js
     // Ví dụ: window.__API_BASE__ = 'https://abc123.trycloudflare.com/api';
   </script>
-  <script type="module" src="js/config.js?v=20261106-171000"></script>
-  <script type="module" src="js/app.js?v=20261106-171000" defer></script>
+  <script type="module" src="js/config.js?v=20261106-171900"></script>
+  <script type="module" src="js/app.js?v=20261106-171900" defer></script>
 </head>
 
 <body>
@@ -284,14 +284,16 @@
               <div id="mv-selected-card" class="selected-material-card" style="display:none;"></div>
             </div>
 
-            <div style="display:grid; grid-template-columns:1fr 1.3fr; gap:12px;">
+            <div style="display:grid; grid-template-columns:1fr 1.4fr; gap:12px;">
               <div class="form-group">
                 <label>Số lượng nhập/xuất</label>
                 <input type="number" id="mv-soluong" value="1" min="1">
               </div>
               <div class="form-group">
-                <label>Người nhận / Thực hiện</label>
-                <input type="text" id="mv-nguoi" placeholder="Tên kỹ thuật viên">
+                <label>Người thực hiện (Cố định)</label>
+                <input type="text" id="mv-nguoi" readonly
+                  style="background:#f1f5f9; font-weight:700; color:#0f172a; cursor:not-allowed;"
+                  title="Họ tên người thực hiện được gắn cố định theo tài khoản đăng nhập">
               </div>
             </div>
 
@@ -348,12 +350,12 @@
               </div>
             </div>
 
-            <!-- PHẦN 3: CẬP NHẬT THEO PHIẾU NHẬP / XUẤT KHO (LỊCH SỬ BIẾN ĐỘNG TỨC THÌ) -->
-            <div class="inv-panel">
+            <!-- PHẦN 3: CẬP NHẬT THEO PHIẾU NHẬP / XUẤT KHO (CHỈ HIỆN TRÊN ADMIN HỆ THỐNG & QUẢN LÝ PHÒNG) -->
+            <div class="inv-panel" id="inv-history-panel" style="display:none;">
               <div class="inv-panel-head">
                 <h3><span>🔄</span> 3. Nhật ký Cập nhật theo Phiếu Nhập / Xuất Kho</h3>
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                  <input type="text" id="mov-history-search" placeholder="🔍 Lọc phiếu theo tên/mã VT..."
+                  <input type="text" id="mov-history-search" placeholder="🔍 Lọc phiếu theo tên/mã VT/tài khoản..."
                     style="padding:6px 12px; border:1px solid var(--slate-300); border-radius:6px; font-size:0.82rem;"
                     oninput="app.renderMovementHistory()">
                   <select id="mov-history-type" onchange="app.renderMovementHistory()"
@@ -374,6 +376,7 @@
                       <th>Mã VT</th>
                       <th>Tên vật tư</th>
                       <th>Biến động</th>
+                      <th>Tài khoản thực hiện</th>
                       <th>Người thực hiện</th>
                       <th>Ghi chú phiếu</th>
                     </tr>
