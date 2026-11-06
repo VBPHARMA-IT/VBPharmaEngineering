@@ -11,14 +11,14 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20261106-170300">
+  <link rel="stylesheet" href="css/style.css?v=20261106-171000">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
     // Có thể override API base URL tại đây trước khi load config.js
     // Ví dụ: window.__API_BASE__ = 'https://abc123.trycloudflare.com/api';
   </script>
-  <script type="module" src="js/config.js?v=20261106-170300"></script>
-  <script type="module" src="js/app.js?v=20261106-170300" defer></script>
+  <script type="module" src="js/config.js?v=20261106-171000"></script>
+  <script type="module" src="js/app.js?v=20261106-171000" defer></script>
 </head>
 
 <body>
@@ -322,15 +322,12 @@
 
               <div class="filter-bar" style="margin-bottom:14px;">
                 <div class="inv-search-box">
-                  <input type="text" id="inv-search-input" placeholder="🔍 Tìm kiếm vật tư theo tên, mã VT, hãng sản xuất, kho..." oninput="app.renderInventoryTable()">
+                  <input type="text" id="inv-search-input" placeholder="🔍 Tìm kiếm vật tư theo tên vật tư hoặc mã VT..." oninput="app.renderInventoryTable()">
                 </div>
                 <select id="inv-company-filter" onchange="app.loadInventory()">
                   <option value="">🏢 Tất cả công ty</option>
                   <option value="VB Pharma">VB Pharma</option>
                   <option value="VBTECH">VBTECH</option>
-                </select>
-                <select id="inv-kho-filter" onchange="app.loadInventory()">
-                  <option value="">🏪 Tất cả kho vật tư</option>
                 </select>
               </div>
 
@@ -342,9 +339,7 @@
                       <th>Tên vật tư</th>
                       <th>ĐVT</th>
                       <th>Tồn kho</th>
-                      <th>Hãng / NSX</th>
                       <th>Công ty</th>
-                      <th>Kho</th>
                       <th style="text-align:right;">Thao tác</th>
                     </tr>
                   </thead>
@@ -670,7 +665,7 @@
             Chọn file Excel (<code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>) chứa danh sách vật tư cần thêm hoặc cập nhật
           </div>
           <div style="font-size:0.82rem; color:var(--slate-500); margin-bottom:12px;">
-            Các cột hỗ trợ: <strong>Mã vật tư</strong>, <strong>Tên vật tư</strong>, <strong>Đơn vị tính</strong>, <strong>Số lượng</strong>, <strong>Hãng SX</strong>, <strong>Công ty</strong> (VB Pharma / VBTECH), <strong>Kho</strong>, <strong>Mô tả</strong>.
+            Các cột hỗ trợ: <strong>Mã vật tư</strong>, <strong>Tên vật tư</strong>, <strong>Đơn vị tính</strong>, <strong>Số lượng</strong>, <strong>Công ty</strong> (VB Pharma / VBTECH), <strong>Mô tả</strong>.
           </div>
           <input type="file" id="inv-excel-file" accept=".xlsx,.xls,.csv" onchange="app.onExcelFileChange(event)">
         </div>
@@ -689,9 +684,7 @@
                   <th>Tên vật tư</th>
                   <th>ĐVT</th>
                   <th>Số lượng</th>
-                  <th>Hãng SX</th>
                   <th>Công ty</th>
-                  <th>Kho</th>
                 </tr>
               </thead>
               <tbody id="excel-preview-tbody"></tbody>
@@ -743,9 +736,7 @@
                 <th>Mã VT</th>
                 <th>Tên vật tư</th>
                 <th>ĐVT</th>
-                <th>Hãng SX</th>
                 <th>Công ty</th>
-                <th>Kho</th>
                 <th style="color:#047857;">Tổng Nhập</th>
                 <th style="color:#b91c1c;">Tổng Xuất</th>
                 <th>Tồn Hiện Tại</th>
@@ -846,23 +837,12 @@
           </div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-          <div class="form-group">
-            <label>Đơn vị sở hữu</label>
-            <select id="i-congty">
-              <option value="VB Pharma">VB Pharma</option>
-              <option value="VBTECH">VBTECH</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Kho lưu trữ</label>
-            <input type="text" id="i-kho" placeholder="Kho Cơ điện / Kho A">
-          </div>
-        </div>
-
         <div class="form-group">
-          <label>Nhà sản xuất / Hãng</label>
-          <input type="text" id="i-nsx" placeholder="Ví dụ: SKF, NTN, Omron...">
+          <label>Đơn vị sở hữu</label>
+          <select id="i-congty">
+            <option value="VB Pharma">VB Pharma</option>
+            <option value="VBTECH">VBTECH</option>
+          </select>
         </div>
 
         <div class="form-group">
@@ -873,6 +853,30 @@
         <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
           <button class="btn btn-outline" onclick="app.closeModal('modal-inventory')">Đóng</button>
           <button class="btn btn-primary" onclick="app.saveInventory()"><span>💾</span> Lưu vật tư</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Delete Inventory with Mandatory Reason (Xác nhận xóa vật tư bắt buộc có lý do) -->
+    <div id="modal-delete-inv" class="modal">
+      <div class="modal-content" style="max-width:480px;">
+        <h3 style="color:#b91c1c;"><span>⚠️</span> Xác Nhận Xóa Vật Tư Kho</h3>
+        <div id="del-inv-alert" class="alert alert-danger" style="display:none;"></div>
+
+        <input type="hidden" id="del-inv-mavt">
+        <div id="del-inv-info" style="background:#fef2f2; border:1px solid #fecaca; padding:12px 14px; border-radius:8px; margin-bottom:16px; font-size:0.9rem; color:#7f1d1d;">
+        </div>
+
+        <div class="form-group">
+          <label for="del-inv-reason">Lý do xóa vật tư <span style="color:#ef4444;">* (Bắt buộc)</span></label>
+          <textarea id="del-inv-reason" rows="3" placeholder="Nhập rõ lý do xóa vật tư này (không được để trống)..."></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:20px;">
+          <button class="btn btn-outline" onclick="app.closeModal('modal-delete-inv')">Hủy bỏ</button>
+          <button class="btn btn-danger" onclick="app.confirmDeleteInventory()">
+            <span>🗑️</span> Xác nhận xóa
+          </button>
         </div>
       </div>
     </div>

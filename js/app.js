@@ -1,4 +1,4 @@
-import { API, authHeaders } from './config.js?v=20261106-170300';
+import { API, authHeaders } from './config.js?v=20261106-171000';
 
 const ROLE_LABELS = {
   admin: '👑 Quản trị viên (Admin)',
@@ -437,11 +437,9 @@ const app = {
     }
 
     const congTy = document.getElementById('inv-company-filter').value;
-    const kho = document.getElementById('inv-kho-filter').value;
     let url = '/inventory/';
     const params = [];
     if (congTy) params.push('cong_ty=' + encodeURIComponent(congTy));
-    if (kho) params.push('kho=' + encodeURIComponent(kho));
     if (params.length) url += '?' + params.join('&');
     try {
       const [data, allData, movData] = await Promise.all([
@@ -453,13 +451,6 @@ const app = {
       this.inventoryCache = rows;
       this.allInventoryCache = allData ? (allData.data || rows) : rows;
       this.movementsCache = movData.data || [];
-
-      const khoSet = new Set();
-      this.allInventoryCache.forEach(r => { if (r.kho) khoSet.add(r.kho); });
-      const khoSelect = document.getElementById('inv-kho-filter');
-      const curKho = khoSelect.value;
-      khoSelect.innerHTML = '<option value="">🏪 Tất cả kho vật tư</option>' +
-        Array.from(khoSet).map(k => `<option value="${k}" ${k === curKho ? 'selected' : ''}>${k}</option>`).join('');
 
       // Nếu đang chọn sẵn 1 vật tư bên form Nhập/Xuất thì cập nhật lại số tồn mới nhất trên thẻ
       const selectedMa = document.getElementById('mv-mavt')?.value;
@@ -481,7 +472,7 @@ const app = {
     const filtered = (this.inventoryCache || []).filter(r => {
       if (!q) return true;
       const haystack = this.normalizeText(
-        `${r.ma_vat_tu} ${r.ten_vat_tu} ${r.nha_san_xuat || ''} ${r.kho || ''} ${r.mo_ta || ''} ${r.don_vi_tinh || ''}`
+        `${r.ma_vat_tu} ${r.ten_vat_tu} ${r.mo_ta || ''} ${r.don_vi_tinh || ''}`
       );
       return haystack.includes(q);
     });
@@ -493,7 +484,7 @@ const app = {
     }
 
     if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:#64748b;">Không tìm thấy vật tư nào phù hợp</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:32px; color:#64748b;">Không tìm thấy vật tư nào phù hợp</td></tr>`;
       return;
     }
 
@@ -512,16 +503,8 @@ const app = {
           <td style="font-weight:600; color:#0f172a;">${r.ten_vat_tu}</td>
           <td>${r.don_vi_tinh || '-'}</td>
           <td>${qtyDisplay}</td>
-          <td>${r.nha_san_xuat || '<span style="color:#94a3b8;">-</span>'}</td>
           <td>${compBadge}</td>
-          <td><span class="badge bg-gray">${r.kho || 'Kho chung'}</span></td>
           <td style="text-align:right; white-space:nowrap;">
-            <button class="btn btn-outline btn-sm" style="color:#047857; border-color:#a7f3d0;" title="Chọn để Nhập kho" onclick="app.openMovementModal('${r.ma_vat_tu}', 'nhap')">
-              + Nhập
-            </button>
-            <button class="btn btn-outline btn-sm" style="color:#b45309; border-color:#fde68a;" title="Chọn để Xuất kho" onclick="app.openMovementModal('${r.ma_vat_tu}', 'xuat')">
-              - Xuất
-            </button>
             <button class="btn btn-outline btn-sm" style="color:#ef4444; border-color:#fecaca;" onclick="app.deleteInventory('${r.ma_vat_tu}')">
               Xóa
             </button>
@@ -651,7 +634,7 @@ const app = {
     const source = this.allInventoryCache || this.inventoryCache || [];
     const matches = source.filter(r => {
       if (!q) return true;
-      const hay = this.normalizeText(`${r.ten_vat_tu} ${r.ma_vat_tu} ${r.nha_san_xuat || ''} ${r.kho || ''}`);
+      const hay = this.normalizeText(`${r.ten_vat_tu} ${r.ma_vat_tu}`);
       return hay.includes(q);
     }).slice(0, 15);
 
@@ -668,7 +651,6 @@ const app = {
           <div class="autocomplete-item-meta">
             <code style="color:#1d4ed8; font-weight:700;">${r.ma_vat_tu}</code>
             <span>• ${r.cong_ty}</span>
-            <span>• ${r.kho || 'Kho chung'}</span>
           </div>
         </div>
         <div class="autocomplete-item-stock">Tồn: ${r.so_luong} ${r.don_vi_tinh || ''}</div>
@@ -709,9 +691,9 @@ const app = {
       don_vi_tinh: document.getElementById('i-dvt').value.trim(),
       so_luong: parseInt(document.getElementById('i-soluong').value) || 0,
       gia_nhap: 0,
-      nha_san_xuat: document.getElementById('i-nsx').value.trim(),
+      nha_san_xuat: '',
       cong_ty: document.getElementById('i-congty').value,
-      kho: document.getElementById('i-kho').value.trim(),
+      kho: '',
       mo_ta: document.getElementById('i-mota').value.trim()
     };
     if (!payload.ma_vat_tu || !payload.ten_vat_tu) {
@@ -771,12 +753,47 @@ const app = {
     }
   },
 
-  async deleteInventory(ma) {
-    if (!confirm(`Xác nhận xóa vật tư ${ma}?`)) return;
+  deleteInventory(ma) {
+    const source = this.allInventoryCache || this.inventoryCache || [];
+    const item = source.find(x => x.ma_vat_tu === ma) || { ma_vat_tu: ma, ten_vat_tu: ma, so_luong: 0 };
+    const maInput = document.getElementById('del-inv-mavt');
+    const infoEl = document.getElementById('del-inv-info');
+    const reasonEl = document.getElementById('del-inv-reason');
+    const alertEl = document.getElementById('del-inv-alert');
+
+    if (maInput) maInput.value = ma;
+    if (infoEl) {
+      infoEl.innerHTML = `Bạn đang yêu cầu xóa vật tư: <strong>${item.ten_vat_tu}</strong> (Mã: <code>${item.ma_vat_tu}</code> — Tồn kho: <strong>${item.so_luong || 0}</strong>)`;
+    }
+    if (reasonEl) reasonEl.value = '';
+    if (alertEl) alertEl.style.display = 'none';
+
+    this.openModal('modal-delete-inv');
+    setTimeout(() => { if (reasonEl) reasonEl.focus(); }, 100);
+  },
+
+  async confirmDeleteInventory() {
+    const ma = (document.getElementById('del-inv-mavt')?.value || '').trim();
+    const reasonEl = document.getElementById('del-inv-reason');
+    const reason = (reasonEl ? reasonEl.value : '').trim();
+
+    if (!reason) {
+      this.alert('del-inv-alert', '⚠️ Cảnh báo: Bắt buộc phải nhập lý do xóa vật tư! Không được để trống.');
+      if (reasonEl) reasonEl.focus();
+      return;
+    }
+
     try {
-      await this.api(`/inventory/${encodeURIComponent(ma)}`, { method: 'DELETE' });
-      this.loadInventory();
-    } catch (e) { this.alert('inv-alert', e.message); }
+      await this.api(`/inventory/${encodeURIComponent(ma)}?ly_do=${encodeURIComponent(reason)}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ ly_do: reason })
+      });
+      this.closeModal('modal-delete-inv');
+      await this.loadInventory();
+      this.alert('inv-alert', `🗑️ Đã xóa vật tư ${ma} (Lý do: ${reason})`, 'success');
+    } catch (e) {
+      this.alert('del-inv-alert', e.message);
+    }
   },
 
   // ---------- Chức năng Admin: Tải danh sách vật tư bằng Excel ----------
@@ -804,9 +821,7 @@ const app = {
         'Tên vật tư': 'Vòng bi SKF 6205-2RS',
         'Đơn vị tính': 'Cái',
         'Số lượng': 20,
-        'Hãng SX': 'SKF',
         'Công ty': 'VB Pharma',
-        'Kho': 'Kho Cơ điện',
         'Mô tả': 'Vòng bi motor AHU'
       },
       {
@@ -814,9 +829,7 @@ const app = {
         'Tên vật tư': 'Cảm biến nhiệt độ PT100 Omron',
         'Đơn vị tính': 'Bộ',
         'Số lượng': 8,
-        'Hãng SX': 'Omron',
         'Công ty': 'VBTECH',
-        'Kho': 'Kho Điện',
         'Mô tả': 'Dùng cho tủ điều khiển trung tâm'
       }
     ];
@@ -864,10 +877,8 @@ const app = {
 
           const dvt = String(pick('don vi tinh', 'don vi', 'dvt', 'don_vi_tinh', 'unit') || 'Cái').trim();
           const sl = Math.max(0, parseInt(pick('so luong', 'so luong ton', 'ton kho', 'ton', 'sl', 'so_luong', 'qty')) || 0);
-          const nsx = String(pick('hang sx', 'nha san xuat', 'hang', 'nsx', 'nha_san_xuat') || '').trim();
           const ctyRaw = String(pick('cong ty', 'don vi so huu', 'cong_ty', 'company') || 'VB Pharma').trim();
           const cong_ty = ctyRaw.toUpperCase().includes('VBTECH') ? 'VBTECH' : 'VB Pharma';
-          const kho = String(pick('kho', 'kho luu tru', 'vi tri') || 'Kho Cơ điện').trim();
           const mo_ta = String(pick('mo ta', 'ghi chu', 'mo_ta', 'note') || '').trim();
 
           parsed.push({
@@ -875,9 +886,9 @@ const app = {
             ten_vat_tu: ten || `Vật tư ${idx + 1}`,
             don_vi_tinh: dvt,
             so_luong: sl,
-            nha_san_xuat: nsx,
+            nha_san_xuat: '',
             cong_ty,
-            kho,
+            kho: '',
             mo_ta
           });
         });
@@ -900,9 +911,7 @@ const app = {
               <td style="font-weight:600;">${it.ten_vat_tu}</td>
               <td>${it.don_vi_tinh}</td>
               <td><strong>${it.so_luong}</strong></td>
-              <td>${it.nha_san_xuat || '-'}</td>
               <td>${it.cong_ty}</td>
-              <td>${it.kho}</td>
             </tr>
           `).join('');
         }
@@ -1041,7 +1050,7 @@ const app = {
     const tbody = document.getElementById('sum-tbody');
     if (!tbody) return;
     if (rows.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:#64748b;">Không có vật tư nào trong bộ lọc tổng hợp</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#64748b;">Không có vật tư nào trong bộ lọc tổng hợp</td></tr>`;
       return;
     }
     tbody.innerHTML = rows.map(r => `
@@ -1049,9 +1058,7 @@ const app = {
         <td><code>${r.ma_vat_tu}</code></td>
         <td style="font-weight:600;">${r.ten_vat_tu}</td>
         <td>${r.don_vi_tinh || '-'}</td>
-        <td>${r.nha_san_xuat || '-'}</td>
         <td>${r.cong_ty}</td>
-        <td>${r.kho || 'Kho chung'}</td>
         <td style="color:#047857; font-weight:700;">+${r.tong_nhap}</td>
         <td style="color:#b91c1c; font-weight:700;">-${r.tong_xuat}</td>
         <td><strong>${r.so_luong}</strong> ${r.so_luong <= 5 ? '<span class="badge bg-danger">Sắp hết</span>' : ''}</td>
@@ -1071,9 +1078,7 @@ const app = {
       'Mã vật tư': r.ma_vat_tu,
       'Tên vật tư': r.ten_vat_tu,
       'Đơn vị tính': r.don_vi_tinh || '',
-      'Hãng / NSX': r.nha_san_xuat || '',
       'Công ty': r.cong_ty || '',
-      'Kho lưu trữ': r.kho || 'Kho chung',
       'Tổng đã Nhập': r.tong_nhap || 0,
       'Tổng đã Xuất': r.tong_xuat || 0,
       'Số lượng Tồn hiện tại': r.so_luong || 0,
