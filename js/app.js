@@ -1,4 +1,4 @@
-﻿import { API, authHeaders } from './config.js?v=20261106-164801';
+import { API, authHeaders } from './config.js?v=20261106-170300';
 
 const ROLE_LABELS = {
   admin: '👑 Quản trị viên (Admin)',
@@ -21,6 +21,8 @@ const app = {
   adminUsersCache: [],
   inventoryCache: [],
   allInventoryCache: [],
+  movementsCache: [],
+  pendingExcelItems: [],
 
   async init() {
     document.addEventListener('click', (e) => {
@@ -100,6 +102,12 @@ const app = {
             navEl.style.display = this.hasPerm(mod) ? 'inline-flex' : 'none';
           }
         });
+
+        // Chỉ hiển thị chức năng Tải file Excel vật tư & Tổng hợp xuất vật tư trên tài khoản Admin
+        const invAdminEl = document.getElementById('inv-admin-actions');
+        if (invAdminEl) {
+          invAdminEl.style.display = (user.role === 'admin') ? 'flex' : 'none';
+        }
       }
     } catch (_) {}
   },
@@ -402,7 +410,7 @@ const app = {
     } catch (e) { this.alert('maint-alert', e.message); }
   },
 
-  // ---------- Inventory ----------
+  // ---------- Inventory (Bố cục 3 phần + Excel Admin + Tổng hợp Admin) ----------
   normalizeText(str) {
     return String(str || '')
       .normalize('NFD')
@@ -413,7 +421,21 @@ const app = {
       .trim();
   },
 
+  isAdmin() {
+    return Boolean(this.currentUser && this.currentUser.role === 'admin');
+  },
+
   async loadInventory() {
+    const invAdminEl = document.getElementById('inv-admin-actions');
+    if (invAdminEl) {
+      invAdminEl.style.display = this.isAdmin() ? 'flex' : 'none';
+    }
+
+    const nguoiInput = document.getElementById('mv-nguoi');
+    if (nguoiInput && !nguoiInput.value && this.currentUser) {
+      nguoiInput.value = this.currentUser.full_name || this.currentUser.username || '';
+    }
+
     const congTy = document.getElementById('inv-company-filter').value;
     const kho = document.getElementById('inv-kho-filter').value;
     let url = '/inventory/';
@@ -422,13 +444,15 @@ const app = {
     if (kho) params.push('kho=' + encodeURIComponent(kho));
     if (params.length) url += '?' + params.join('&');
     try {
-      const [data, allData] = await Promise.all([
+      const [data, allData, movData] = await Promise.all([
         this.api(url),
-        params.length ? this.api('/inventory/') : Promise.resolve(null)
+        params.length ? this.api('/inventory/') : Promise.resolve(null),
+        this.api('/inventory/movements?limit=200').catch(() => ({ data: [] }))
       ]);
       const rows = data.data || [];
       this.inventoryCache = rows;
       this.allInventoryCache = allData ? (allData.data || rows) : rows;
+      this.movementsCache = movData.data || [];
 
       const khoSet = new Set();
       this.allInventoryCache.forEach(r => { if (r.kho) khoSet.add(r.kho); });
@@ -437,7 +461,14 @@ const app = {
       khoSelect.innerHTML = '<option value="">🏪 Tất cả kho vật tư</option>' +
         Array.from(khoSet).map(k => `<option value="${k}" ${k === curKho ? 'selected' : ''}>${k}</option>`).join('');
 
+      // Nếu đang chọn sẵn 1 vật tư bên form Nhập/Xuất thì cập nhật lại số tồn mới nhất trên thẻ
+      const selectedMa = document.getElementById('mv-mavt')?.value;
+      if (selectedMa) {
+        this.selectMovementMaterial(selectedMa);
+      }
+
       this.renderInventoryTable();
+      this.renderMovementHistory();
     } catch (e) { this.alert('inv-alert', e.message); }
   },
 
@@ -454,6 +485,12 @@ const app = {
       );
       return haystack.includes(q);
     });
+
+    const countBadge = document.getElementById('inv-count-badge');
+    if (countBadge) {
+      const totalQty = filtered.reduce((s, x) => s + (x.so_luong || 0), 0);
+      countBadge.textContent = `${filtered.length} danh mục • Tổng tồn: ${totalQty}`;
+    }
 
     if (filtered.length === 0) {
       tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:#64748b;">Không tìm thấy vật tư nào phù hợp</td></tr>`;
@@ -479,8 +516,11 @@ const app = {
           <td>${compBadge}</td>
           <td><span class="badge bg-gray">${r.kho || 'Kho chung'}</span></td>
           <td style="text-align:right; white-space:nowrap;">
-            <button class="btn btn-outline btn-sm" style="color:#1d4ed8; border-color:#bfdbfe;" onclick="app.openMovementModal('${r.ma_vat_tu}')">
-              ⇄ Nhập/Xuất
+            <button class="btn btn-outline btn-sm" style="color:#047857; border-color:#a7f3d0;" title="Chọn để Nhập kho" onclick="app.openMovementModal('${r.ma_vat_tu}', 'nhap')">
+              + Nhập
+            </button>
+            <button class="btn btn-outline btn-sm" style="color:#b45309; border-color:#fde68a;" title="Chọn để Xuất kho" onclick="app.openMovementModal('${r.ma_vat_tu}', 'xuat')">
+              - Xuất
             </button>
             <button class="btn btn-outline btn-sm" style="color:#ef4444; border-color:#fecaca;" onclick="app.deleteInventory('${r.ma_vat_tu}')">
               Xóa
@@ -491,13 +531,65 @@ const app = {
     }).join('');
   },
 
-  async openMovementModal(preselectedMaVt = '') {
-    if (!this.allInventoryCache || this.allInventoryCache.length === 0) {
-      try {
-        const res = await this.api('/inventory/');
-        this.allInventoryCache = res.data || [];
-      } catch (_) {}
+  renderMovementHistory() {
+    const tbody = document.getElementById('inv-movements-tbody');
+    if (!tbody) return;
+    const q = this.normalizeText(document.getElementById('mov-history-search')?.value || '');
+    const typeFilter = document.getElementById('mov-history-type')?.value || '';
+
+    const itemMap = {};
+    (this.allInventoryCache || []).forEach(it => { itemMap[it.ma_vat_tu] = it; });
+
+    const list = (this.movementsCache || []).filter(m => {
+      if (typeFilter && m.loai !== typeFilter) return false;
+      if (!q) return true;
+      const item = itemMap[m.ma_vat_tu] || {};
+      const ten = m.ten_vat_tu || item.ten_vat_tu || '';
+      const hay = this.normalizeText(`${m.ma_vat_tu} ${ten} ${m.nguoi_thuc_hien || ''} ${m.ghi_chu || ''}`);
+      return hay.includes(q);
+    });
+
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#64748b;">Chưa có phiếu nhập/xuất kho nào phù hợp</td></tr>`;
+      return;
     }
+
+    tbody.innerHTML = list.map(m => {
+      const item = itemMap[m.ma_vat_tu] || {};
+      const tenVt = m.ten_vat_tu || item.ten_vat_tu || m.ma_vat_tu;
+      const dvt = m.don_vi_tinh || item.don_vi_tinh || '';
+      const isNhap = m.loai === 'nhap';
+      const typeBadge = isNhap
+        ? '<span class="badge bg-success">📥 Nhập kho</span>'
+        : '<span class="badge bg-danger">📤 Xuất kho</span>';
+      const deltaHtml = isNhap
+        ? `<strong style="color:#047857;">+${m.so_luong} ${dvt}</strong>`
+        : `<strong style="color:#b91c1c;">-${m.so_luong} ${dvt}</strong>`;
+
+      return `
+        <tr>
+          <td style="font-family:var(--font-mono); font-size:0.78rem; color:#475569;">${m.ngay_thuc_hien || '-'}</td>
+          <td>${typeBadge}</td>
+          <td><code style="font-weight:700; color:#1e40af;">${m.ma_vat_tu}</code></td>
+          <td style="font-weight:600; color:#0f172a;">${tenVt}</td>
+          <td>${deltaHtml}</td>
+          <td>${m.nguoi_thuc_hien || '-'}</td>
+          <td>${m.ghi_chu || '<span style="color:#94a3b8;">-</span>'}</td>
+        </tr>
+      `;
+    }).join('');
+  },
+
+  setMovementType(type) {
+    const hiddenLoai = document.getElementById('mv-loai');
+    const btnNhap = document.getElementById('btn-type-nhap');
+    const btnXuat = document.getElementById('btn-type-xuat');
+    if (hiddenLoai) hiddenLoai.value = type;
+    if (btnNhap) btnNhap.className = 'mov-type-btn' + (type === 'nhap' ? ' active-nhap' : '');
+    if (btnXuat) btnXuat.className = 'mov-type-btn' + (type === 'xuat' ? ' active-xuat' : '');
+  },
+
+  resetMovementForm() {
     const searchInput = document.getElementById('mv-search');
     const hiddenMaVt = document.getElementById('mv-mavt');
     const cardEl = document.getElementById('mv-selected-card');
@@ -510,15 +602,32 @@ const app = {
       cardEl.innerHTML = '';
     }
     if (listEl) listEl.style.display = 'none';
-
     document.getElementById('mv-soluong').value = 1;
     document.getElementById('mv-ghichu').value = '';
+    this.setMovementType('nhap');
+  },
 
+  async openMovementModal(preselectedMaVt = '', type = '') {
+    if (!this.allInventoryCache || this.allInventoryCache.length === 0) {
+      try {
+        const res = await this.api('/inventory/');
+        this.allInventoryCache = res.data || [];
+      } catch (_) {}
+    }
+    if (type === 'nhap' || type === 'xuat') {
+      this.setMovementType(type);
+    }
     if (preselectedMaVt) {
       this.selectMovementMaterial(preselectedMaVt);
+      const qtyInput = document.getElementById('mv-soluong');
+      if (qtyInput) {
+        qtyInput.focus();
+        qtyInput.select();
+      }
+    } else {
+      const searchInput = document.getElementById('mv-search');
+      if (searchInput) searchInput.focus();
     }
-
-    this.openModal('modal-movement');
   },
 
   onMovementSearchInput() {
@@ -531,7 +640,6 @@ const app = {
     const raw = searchInput.value.trim();
     const q = this.normalizeText(raw);
 
-    // Nếu người dùng đang sửa text khác với vật tư đã chọn thì reset lựa chọn cũ
     if (hiddenMaVt && hiddenMaVt.value) {
       const curItem = (this.allInventoryCache || []).find(x => x.ma_vat_tu === hiddenMaVt.value);
       if (!curItem || raw !== `${curItem.ten_vat_tu} (${curItem.ma_vat_tu})`) {
@@ -585,10 +693,10 @@ const app = {
     if (cardEl) {
       cardEl.innerHTML = `
         <div>
-          ✅ Đã chọn: <strong>${item.ten_vat_tu}</strong>
+          ✅ Đang chọn: <strong>${item.ten_vat_tu}</strong>
           <code style="margin-left:6px; background:#dbeafe; padding:2px 6px; border-radius:4px; font-weight:700;">${item.ma_vat_tu}</code>
         </div>
-        <div>Tồn hiện tại: <strong>${item.so_luong} ${item.don_vi_tinh || ''}</strong></div>
+        <div>Tồn kho hiện tại: <strong>${item.so_luong} ${item.don_vi_tinh || ''}</strong></div>
       `;
       cardEl.style.display = 'flex';
     }
@@ -654,9 +762,10 @@ const app = {
     }
     try {
       await this.api('/inventory/movements', { method: 'POST', body: JSON.stringify(payload) });
-      this.closeModal('modal-movement');
-      this.loadInventory();
-      this.alert('inv-alert', 'Đã cập nhật phiếu nhập/xuất kho thành công!', 'success');
+      document.getElementById('mv-soluong').value = 1;
+      document.getElementById('mv-ghichu').value = '';
+      await this.loadInventory();
+      this.alert('inv-alert', `✅ Đã ${payload.loai === 'nhap' ? 'NHẬP' : 'XUẤT'} ${payload.so_luong} vật tư (${payload.ma_vat_tu}) và cập nhật tồn kho thành công!`, 'success');
     } catch (e) {
       this.alert('mov-modal-alert', e.message);
     }
@@ -668,6 +777,336 @@ const app = {
       await this.api(`/inventory/${encodeURIComponent(ma)}`, { method: 'DELETE' });
       this.loadInventory();
     } catch (e) { this.alert('inv-alert', e.message); }
+  },
+
+  // ---------- Chức năng Admin: Tải danh sách vật tư bằng Excel ----------
+  openImportExcelModal() {
+    if (!this.isAdmin()) {
+      alert('Chức năng này chỉ dành cho tài khoản Quản trị viên (Admin).');
+      return;
+    }
+    this.pendingExcelItems = [];
+    const fileInput = document.getElementById('inv-excel-file');
+    if (fileInput) fileInput.value = '';
+    const previewWrap = document.getElementById('excel-preview-wrap');
+    if (previewWrap) previewWrap.style.display = 'none';
+    this.openModal('modal-inv-excel');
+  },
+
+  downloadExcelTemplate() {
+    if (typeof XLSX === 'undefined') {
+      alert('Thư viện xử lý Excel đang tải, vui lòng thử lại sau giây lát.');
+      return;
+    }
+    const sampleRows = [
+      {
+        'Mã vật tư': 'VT101',
+        'Tên vật tư': 'Vòng bi SKF 6205-2RS',
+        'Đơn vị tính': 'Cái',
+        'Số lượng': 20,
+        'Hãng SX': 'SKF',
+        'Công ty': 'VB Pharma',
+        'Kho': 'Kho Cơ điện',
+        'Mô tả': 'Vòng bi motor AHU'
+      },
+      {
+        'Mã vật tư': 'VT102',
+        'Tên vật tư': 'Cảm biến nhiệt độ PT100 Omron',
+        'Đơn vị tính': 'Bộ',
+        'Số lượng': 8,
+        'Hãng SX': 'Omron',
+        'Công ty': 'VBTECH',
+        'Kho': 'Kho Điện',
+        'Mô tả': 'Dùng cho tủ điều khiển trung tâm'
+      }
+    ];
+    const ws = XLSX.utils.json_to_sheet(sampleRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Danh_Sach_Vat_Tu');
+    XLSX.writeFile(wb, 'Mau_Nhap_Vat_Tu_Kho_VBPharma.xlsx');
+  },
+
+  onExcelFileChange(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    if (typeof XLSX === 'undefined') {
+      this.alert('excel-modal-alert', 'Thư viện Excel chưa sẵn sàng, vui lòng tải lại trang.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rawRows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+        const parsed = [];
+        rawRows.forEach((row, idx) => {
+          const normObj = {};
+          Object.keys(row).forEach(k => {
+            normObj[this.normalizeText(k)] = row[k];
+          });
+
+          const pick = (...keys) => {
+            for (const k of keys) {
+              if (normObj[k] !== undefined && normObj[k] !== '') return normObj[k];
+            }
+            for (const rk of Object.keys(normObj)) {
+              if (keys.some(k => rk.includes(k)) && normObj[rk] !== '') return normObj[rk];
+            }
+            return '';
+          };
+
+          const ma = String(pick('ma vat tu', 'ma vt', 'ma_vat_tu', 'mavt', 'code', 'ma')).trim();
+          const ten = String(pick('ten vat tu', 'ten vt', 'ten_vat_tu', 'tenvt', 'name', 'ten')).trim();
+          if (!ma && !ten) return;
+
+          const dvt = String(pick('don vi tinh', 'don vi', 'dvt', 'don_vi_tinh', 'unit') || 'Cái').trim();
+          const sl = Math.max(0, parseInt(pick('so luong', 'so luong ton', 'ton kho', 'ton', 'sl', 'so_luong', 'qty')) || 0);
+          const nsx = String(pick('hang sx', 'nha san xuat', 'hang', 'nsx', 'nha_san_xuat') || '').trim();
+          const ctyRaw = String(pick('cong ty', 'don vi so huu', 'cong_ty', 'company') || 'VB Pharma').trim();
+          const cong_ty = ctyRaw.toUpperCase().includes('VBTECH') ? 'VBTECH' : 'VB Pharma';
+          const kho = String(pick('kho', 'kho luu tru', 'vi tri') || 'Kho Cơ điện').trim();
+          const mo_ta = String(pick('mo ta', 'ghi chu', 'mo_ta', 'note') || '').trim();
+
+          parsed.push({
+            ma_vat_tu: ma || `VT-EX${idx + 1}`,
+            ten_vat_tu: ten || `Vật tư ${idx + 1}`,
+            don_vi_tinh: dvt,
+            so_luong: sl,
+            nha_san_xuat: nsx,
+            cong_ty,
+            kho,
+            mo_ta
+          });
+        });
+
+        this.pendingExcelItems = parsed;
+        const wrap = document.getElementById('excel-preview-wrap');
+        const countEl = document.getElementById('excel-preview-count');
+        const tbody = document.getElementById('excel-preview-tbody');
+        if (parsed.length === 0) {
+          if (wrap) wrap.style.display = 'none';
+          this.alert('excel-modal-alert', 'Không tìm thấy dòng vật tư hợp lệ trong file Excel. Hãy kiểm tra tiêu đề cột (Mã vật tư, Tên vật tư...).');
+          return;
+        }
+        if (countEl) countEl.textContent = `${parsed.length} vật tư hợp lệ`;
+        if (tbody) {
+          tbody.innerHTML = parsed.map((it, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td><code>${it.ma_vat_tu}</code></td>
+              <td style="font-weight:600;">${it.ten_vat_tu}</td>
+              <td>${it.don_vi_tinh}</td>
+              <td><strong>${it.so_luong}</strong></td>
+              <td>${it.nha_san_xuat || '-'}</td>
+              <td>${it.cong_ty}</td>
+              <td>${it.kho}</td>
+            </tr>
+          `).join('');
+        }
+        if (wrap) wrap.style.display = 'block';
+      } catch (err) {
+        this.alert('excel-modal-alert', 'Không thể đọc file Excel: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  },
+
+  async confirmImportExcel() {
+    if (!this.isAdmin()) return;
+    if (!this.pendingExcelItems || this.pendingExcelItems.length === 0) {
+      this.alert('excel-modal-alert', 'Vui lòng chọn file Excel có dữ liệu vật tư hợp lệ trước khi tải lên');
+      return;
+    }
+    try {
+      try {
+        const res = await this.api('/inventory/bulk', {
+          method: 'POST',
+          body: JSON.stringify({ items: this.pendingExcelItems })
+        });
+        this.closeModal('modal-inv-excel');
+        await this.loadInventory();
+        this.alert('inv-alert', `✅ Đã tải lên Excel thành công: Thêm mới ${res.inserted || 0} vật tư, cập nhật ${res.updated || 0} vật tư!`, 'success');
+        return;
+      } catch (_) {
+        // Fallback tự động nếu Backend chưa khởi động lại để nhận route /bulk mới
+        const existingMap = {};
+        (this.allInventoryCache || []).forEach(x => { existingMap[x.ma_vat_tu] = true; });
+        let inserted = 0;
+        let updated = 0;
+        for (const it of this.pendingExcelItems) {
+          const payload = { ...it, gia_nhap: 0 };
+          if (existingMap[it.ma_vat_tu]) {
+            await this.api(`/inventory/${encodeURIComponent(it.ma_vat_tu)}`, {
+              method: 'PUT',
+              body: JSON.stringify(payload)
+            });
+            updated++;
+          } else {
+            await this.api('/inventory/', {
+              method: 'POST',
+              body: JSON.stringify(payload)
+            });
+            inserted++;
+          }
+        }
+        this.closeModal('modal-inv-excel');
+        await this.loadInventory();
+        this.alert('inv-alert', `✅ Đã tải lên danh sách Excel thành công: Thêm mới ${inserted} vật tư, cập nhật ${updated} vật tư!`, 'success');
+      }
+    } catch (e) {
+      this.alert('excel-modal-alert', e.message);
+    }
+  },
+
+  // ---------- Chức năng Admin: Tổng hợp & Xuất danh sách vật tư ----------
+  async openExportSummaryModal() {
+    if (!this.isAdmin()) {
+      alert('Chức năng này chỉ dành cho tài khoản Quản trị viên (Admin).');
+      return;
+    }
+    await this.loadInventory();
+    this.renderSummaryModalTable();
+    this.openModal('modal-inv-summary');
+  },
+
+  getAggregatedSummaryRows() {
+    const movStats = {};
+    (this.movementsCache || []).forEach(m => {
+      if (!movStats[m.ma_vat_tu]) movStats[m.ma_vat_tu] = { nhap: 0, xuat: 0 };
+      if (m.loai === 'nhap') movStats[m.ma_vat_tu].nhap += (parseInt(m.so_luong) || 0);
+      if (m.loai === 'xuat') movStats[m.ma_vat_tu].xuat += (parseInt(m.so_luong) || 0);
+    });
+
+    const q = this.normalizeText(document.getElementById('sum-search-input')?.value || '');
+    const cty = document.getElementById('sum-company-filter')?.value || '';
+    const status = document.getElementById('sum-status-filter')?.value || 'all';
+
+    return (this.allInventoryCache || []).map(it => {
+      const st = movStats[it.ma_vat_tu] || { nhap: 0, xuat: 0 };
+      return {
+        ...it,
+        tong_nhap: st.nhap,
+        tong_xuat: st.xuat
+      };
+    }).filter(r => {
+      if (cty && r.cong_ty !== cty) return false;
+      if (status === 'low' && (r.so_luong || 0) > 5) return false;
+      if (status === 'active_mov' && r.tong_nhap === 0 && r.tong_xuat === 0) return false;
+      if (!q) return true;
+      const hay = this.normalizeText(`${r.ma_vat_tu} ${r.ten_vat_tu} ${r.nha_san_xuat || ''} ${r.kho || ''}`);
+      return hay.includes(q);
+    });
+  },
+
+  renderSummaryModalTable() {
+    const rows = this.getAggregatedSummaryRows();
+    const totalItems = rows.length;
+    const totalStock = rows.reduce((s, x) => s + (x.so_luong || 0), 0);
+    const totalIn = rows.reduce((s, x) => s + (x.tong_nhap || 0), 0);
+    const totalOut = rows.reduce((s, x) => s + (x.tong_xuat || 0), 0);
+
+    const kpiEl = document.getElementById('sum-kpi-cards');
+    if (kpiEl) {
+      kpiEl.innerHTML = `
+        <div class="stat" style="padding:14px 16px;">
+          <div class="stat-content">
+            <div class="value" style="font-size:1.5rem;">${totalItems}</div>
+            <div class="label">Danh mục vật tư</div>
+          </div>
+        </div>
+        <div class="stat" style="padding:14px 16px;">
+          <div class="stat-content">
+            <div class="value" style="font-size:1.5rem; color:#1d4ed8;">${totalStock}</div>
+            <div class="label">Tổng số lượng tồn</div>
+          </div>
+        </div>
+        <div class="stat" style="padding:14px 16px;">
+          <div class="stat-content">
+            <div class="value" style="font-size:1.5rem; color:#047857;">+${totalIn}</div>
+            <div class="label">Tổng lượng đã Nhập</div>
+          </div>
+        </div>
+        <div class="stat" style="padding:14px 16px;">
+          <div class="stat-content">
+            <div class="value" style="font-size:1.5rem; color:#b91c1c;">-${totalOut}</div>
+            <div class="label">Tổng lượng đã Xuất</div>
+          </div>
+        </div>
+      `;
+    }
+
+    const tbody = document.getElementById('sum-tbody');
+    if (!tbody) return;
+    if (rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:#64748b;">Không có vật tư nào trong bộ lọc tổng hợp</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td><code>${r.ma_vat_tu}</code></td>
+        <td style="font-weight:600;">${r.ten_vat_tu}</td>
+        <td>${r.don_vi_tinh || '-'}</td>
+        <td>${r.nha_san_xuat || '-'}</td>
+        <td>${r.cong_ty}</td>
+        <td>${r.kho || 'Kho chung'}</td>
+        <td style="color:#047857; font-weight:700;">+${r.tong_nhap}</td>
+        <td style="color:#b91c1c; font-weight:700;">-${r.tong_xuat}</td>
+        <td><strong>${r.so_luong}</strong> ${r.so_luong <= 5 ? '<span class="badge bg-danger">Sắp hết</span>' : ''}</td>
+      </tr>
+    `).join('');
+  },
+
+  exportInventorySummaryExcel() {
+    if (!this.isAdmin()) return;
+    if (typeof XLSX === 'undefined') {
+      alert('Thư viện xuất Excel chưa sẵn sàng, vui lòng tải lại trang.');
+      return;
+    }
+    const rows = this.getAggregatedSummaryRows();
+    const sheet1Data = rows.map((r, idx) => ({
+      'STT': idx + 1,
+      'Mã vật tư': r.ma_vat_tu,
+      'Tên vật tư': r.ten_vat_tu,
+      'Đơn vị tính': r.don_vi_tinh || '',
+      'Hãng / NSX': r.nha_san_xuat || '',
+      'Công ty': r.cong_ty || '',
+      'Kho lưu trữ': r.kho || 'Kho chung',
+      'Tổng đã Nhập': r.tong_nhap || 0,
+      'Tổng đã Xuất': r.tong_xuat || 0,
+      'Số lượng Tồn hiện tại': r.so_luong || 0,
+      'Trạng thái tồn': (r.so_luong || 0) <= 5 ? 'Sắp hết (Cần bổ sung)' : 'Đủ tồn kho',
+      'Mô tả kỹ thuật': r.mo_ta || ''
+    }));
+
+    const itemMap = {};
+    (this.allInventoryCache || []).forEach(it => { itemMap[it.ma_vat_tu] = it; });
+    const sheet2Data = (this.movementsCache || []).map((m, idx) => {
+      const it = itemMap[m.ma_vat_tu] || {};
+      return {
+        'STT': idx + 1,
+        'Thời gian': m.ngay_thuc_hien || '',
+        'Loại phiếu': m.loai === 'nhap' ? 'Nhập kho' : 'Xuất kho',
+        'Mã vật tư': m.ma_vat_tu,
+        'Tên vật tư': m.ten_vat_tu || it.ten_vat_tu || '',
+        'Đơn vị tính': m.don_vi_tinh || it.don_vi_tinh || '',
+        'Số lượng': m.so_luong || 0,
+        'Người thực hiện': m.nguoi_thuc_hien || '',
+        'Lý do / Ghi chú': m.ghi_chu || ''
+      };
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws1 = XLSX.utils.json_to_sheet(sheet1Data);
+    XLSX.utils.book_append_sheet(wb, ws1, 'Tong_Hop_Vat_Tu');
+    if (sheet2Data.length > 0) {
+      const ws2 = XLSX.utils.json_to_sheet(sheet2Data);
+      XLSX.utils.book_append_sheet(wb, ws2, 'Lich_Su_Nhap_Xuat');
+    }
+    const dateStr = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `Bao_Cao_Tong_Hop_Vat_Tu_Kho_${dateStr}.xlsx`);
   },
 
   // ---------- Documents ----------
