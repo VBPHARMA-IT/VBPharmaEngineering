@@ -1,4 +1,4 @@
-﻿import { API, authHeaders } from './config.js?v=20261107-135545';
+import { API, authHeaders } from './config.js?v=20261107-141500';
 
 const ROLE_LABELS = {
   admin: '👑 Quản trị viên (Admin)',
@@ -769,28 +769,77 @@ const app = {
     }
   },
 
+  generateRandomMaterialCode(extraUsedSet = null) {
+    const existing = new Set((this.allInventoryCache || []).map(x => String(x.ma_vat_tu || '').toUpperCase()));
+    if (extraUsedSet) {
+      extraUsedSet.forEach(c => existing.add(String(c || '').toUpperCase()));
+    }
+    for (let i = 0; i < 200; i++) {
+      const code = 'VT' + Math.floor(1000 + Math.random() * 9000);
+      if (!existing.has(code)) {
+        if (extraUsedSet) extraUsedSet.add(code);
+        return code;
+      }
+    }
+    const fallback = 'VT' + Date.now().toString().slice(-5);
+    if (extraUsedSet) extraUsedSet.add(fallback);
+    return fallback;
+  },
+
   async saveInventory() {
-    const payload = {
-      ma_vat_tu: document.getElementById('i-mavt').value.trim(),
-      ten_vat_tu: document.getElementById('i-tenvt').value.trim(),
-      don_vi_tinh: document.getElementById('i-dvt').value.trim(),
-      so_luong: parseInt(document.getElementById('i-soluong').value) || 0,
-      gia_nhap: 0,
-      nha_san_xuat: '',
-      cong_ty: document.getElementById('i-congty').value,
-      kho: '',
-      mo_ta: document.getElementById('i-mota').value.trim()
-    };
-    if (!payload.ma_vat_tu || !payload.ten_vat_tu) {
-      this.alert('inv-modal-alert', 'Vui lòng nhập mã vật tư và tên vật tư');
+    let maVt = document.getElementById('i-mavt').value.trim();
+    const tenVt = document.getElementById('i-tenvt').value.trim();
+    const dvt = document.getElementById('i-dvt').value.trim();
+    const initialQty = Math.max(0, parseInt(document.getElementById('i-soluong').value) || 0);
+    const congTy = document.getElementById('i-congty').value;
+    const moTa = document.getElementById('i-mota').value.trim();
+
+    if (!tenVt) {
+      this.alert('inv-modal-alert', 'Vui lòng nhập tên vật tư kỹ thuật');
       return;
     }
+
+    if (!maVt) {
+      maVt = this.generateRandomMaterialCode();
+    }
+
+    const payload = {
+      ma_vat_tu: maVt,
+      ten_vat_tu: tenVt,
+      don_vi_tinh: dvt,
+      so_luong: 0,
+      gia_nhap: 0,
+      nha_san_xuat: '',
+      cong_ty: congTy,
+      kho: '',
+      mo_ta: moTa
+    };
+
     try {
       await this.api('/inventory/', { method: 'POST', body: JSON.stringify(payload) });
+
+      if (initialQty > 0) {
+        const iden = this.getFixedAccountIdentity(this.currentUser);
+        await this.api('/inventory/movements', {
+          method: 'POST',
+          body: JSON.stringify({
+            ma_vat_tu: maVt,
+            loai: 'nhap',
+            so_luong: initialQty,
+            nguoi_thuc_hien: `${iden.username} | ${iden.fullName}`,
+            ghi_chu: moTa ? `Nhập vật tư mới vào kho (${moTa})` : 'Nhập vật tư mới vào kho'
+          })
+        });
+      }
+
       this.closeModal('modal-inventory');
       document.getElementById('i-mavt').value = '';
       document.getElementById('i-tenvt').value = '';
-      this.loadInventory();
+      document.getElementById('i-dvt').value = '';
+      document.getElementById('i-soluong').value = '1';
+      document.getElementById('i-mota').value = '';
+      await this.loadInventory();
+      this.alert('inv-alert', `✅ Đã thêm vật tư mới "${tenVt}" (Mã: ${maVt}, SL: ${initialQty} ${dvt || ''}) và lưu vào nhật ký nhập kho!`, 'success');
     } catch (e) { this.alert('inv-modal-alert', e.message); }
   },
 
@@ -941,6 +990,7 @@ const app = {
         const rawRows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
 
         const parsed = [];
+        const batchCodes = new Set();
         rawRows.forEach((row, idx) => {
           const normObj = {};
           Object.keys(row).forEach(k => {
@@ -967,8 +1017,11 @@ const app = {
           const cong_ty = ctyRaw.toUpperCase().includes('VBTECH') ? 'VBTECH' : 'VB Pharma';
           const mo_ta = String(pick('mo ta', 'ghi chu', 'mo_ta', 'note') || '').trim();
 
+          const finalMa = ma || this.generateRandomMaterialCode(batchCodes);
+          batchCodes.add(finalMa.toUpperCase());
+
           parsed.push({
-            ma_vat_tu: ma || `VT-EX${idx + 1}`,
+            ma_vat_tu: finalMa,
             ten_vat_tu: ten || `Vật tư ${idx + 1}`,
             don_vi_tinh: dvt,
             so_luong: sl,
@@ -1029,21 +1082,36 @@ const app = {
         // Fallback tự động nếu Backend chưa khởi động lại để nhận route /bulk mới
         const existingMap = {};
         (this.allInventoryCache || []).forEach(x => { existingMap[x.ma_vat_tu] = true; });
+        const iden = this.getFixedAccountIdentity(this.currentUser);
         let inserted = 0;
         let updated = 0;
         for (const it of this.pendingExcelItems) {
-          const payload = { ...it, gia_nhap: 0 };
+          const qty = Math.max(0, parseInt(it.so_luong) || 0);
           if (existingMap[it.ma_vat_tu]) {
+            const payload = { ...it, gia_nhap: 0 };
             await this.api(`/inventory/${encodeURIComponent(it.ma_vat_tu)}`, {
               method: 'PUT',
               body: JSON.stringify(payload)
             });
             updated++;
           } else {
+            const payload = { ...it, so_luong: 0, gia_nhap: 0 };
             await this.api('/inventory/', {
               method: 'POST',
               body: JSON.stringify(payload)
             });
+            if (qty > 0) {
+              await this.api('/inventory/movements', {
+                method: 'POST',
+                body: JSON.stringify({
+                  ma_vat_tu: it.ma_vat_tu,
+                  loai: 'nhap',
+                  so_luong: qty,
+                  nguoi_thuc_hien: `${iden.username} | ${iden.fullName}`,
+                  ghi_chu: it.mo_ta ? `Nhập vật tư mới từ Excel (${it.mo_ta})` : 'Nhập vật tư mới từ Excel'
+                })
+              });
+            }
             inserted++;
           }
         }

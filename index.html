@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 
 <head>
@@ -11,14 +11,14 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20261107-135545">
+  <link rel="stylesheet" href="css/style.css?v=20261107-141500">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
     // Có thể override API base URL tại đây trước khi load config.js
     // Ví dụ: window.__API_BASE__ = 'https://abc123.trycloudflare.com/api';
   </script>
-  <script type="module" src="js/config.js?v=20261107-135545"></script>
-  <script type="module" src="js/app.js?v=20261107-135545" defer></script>
+  <script type="module" src="js/config.js?v=20261107-141500"></script>
+  <script type="module" src="js/app.js?v=20261107-141500" defer></script>
 </head>
 
 <body>
@@ -820,8 +820,8 @@
 
         <div style="display:grid; grid-template-columns:1fr 1.5fr; gap:14px;">
           <div class="form-group">
-            <label>Mã vật tư</label>
-            <input type="text" id="i-mavt" placeholder="Ví dụ: VT003">
+            <label>Mã vật tư <span style="font-weight:400; color:var(--slate-400);">(Để trống tự sinh mã)</span></label>
+            <input type="text" id="i-mavt" placeholder="Bỏ trống sẽ tự sinh ngẫu nhiên (VD: VT4829)">
           </div>
           <div class="form-group">
             <label>Tên vật tư kỹ thuật</label>
@@ -835,8 +835,8 @@
             <input type="text" id="i-dvt" placeholder="cái, bộ, mét...">
           </div>
           <div class="form-group">
-            <label>Số lượng tồn</label>
-            <input type="number" id="i-soluong" value="0" min="0">
+            <label>Số lượng nhập kho ban đầu</label>
+            <input type="number" id="i-soluong" value="1" min="0">
           </div>
         </div>
 
